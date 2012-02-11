@@ -1,0 +1,53 @@
+Win32-Scsv Version 0.01
+
+Convert Excel file to CSV using Win32::OLE
+
+SYNOPSIS
+
+    use Win32::Scsv qw(convcsv);
+
+    convcsv('Test Excel File.xlsx%Tabelle3' => 'dummy.csv');
+    convcsv('Test Excel File.xlsx%Tabelle Test');
+
+INSTALLATION
+
+    To install this module, run the following commands:
+
+	perl Makefile.PL
+	make
+	make test
+	make install
+
+SUPPORT AND DOCUMENTATION
+
+    After installing, you can find documentation for this module with the
+    perldoc command.
+
+    perldoc Win32::Scsv
+
+You can also look for information at:
+
+    RT, CPAN's request tracker
+        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Win32-Scsv
+
+    AnnoCPAN, Annotated CPAN documentation
+        http://annocpan.org/dist/Win32-Scsv
+
+    CPAN Ratings
+        http://cpanratings.perl.org/d/Win32-Scsv
+
+    Search CPAN
+        http://search.cpan.org/dist/Win32-Scsv/
+
+
+AUTHOR
+
+    Klaus Eichner <klaus03@gmail.com>
+
+COPYRIGHT AND LICENSE
+
+    Copyright (C) 2009-2011 by Klaus Eichner
+
+    All rights reserved. This program is free software; you can redistribute
+    it and/or modify it under the terms of the artistic license 2.0,
+    see http://www.opensource.org/licenses/artistic-license-2.0.php
