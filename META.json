@@ -1,10 +1,10 @@
 {
    "abstract" : "Convert Excel file to CSV using Win32::OLE",
    "author" : [
-      "Klaus Eichner <klaus03@gmail.com>"
+      "unknown"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.38, CPAN::Meta::Converter version 2.110930",
+   "generated_by" : "Module::Build version 0.3901, CPAN::Meta::Converter version 2.120630",
    "license" : [
       "perl_5"
    ],
@@ -16,19 +16,20 @@
    "prereqs" : {
       "configure" : {
          "requires" : {
-            "Module::Build" : 0
+            "Module::Build" : "0"
          }
       },
       "runtime" : {
          "requires" : {
-            "Win32::OLE" : 0
+            "Win32::OLE" : "0",
+            "Win32::OLE::Const" : "0"
          }
       }
    },
    "provides" : {
       "Win32::Scsv" : {
          "file" : "lib/Win32/Scsv.pm",
-         "version" : "0.01"
+         "version" : "0.02"
       }
    },
    "release_status" : "stable",
@@ -37,5 +38,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.01"
+   "version" : "0.02"
 }

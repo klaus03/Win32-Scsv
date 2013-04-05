@@ -2,3 +2,6 @@ Revision history for Win32-Scsv
 
 0.01    11 Feb 2012
         First version, released on an unsuspecting world.
+
+0.02    05 Apr 2013
+        Add a function convxls to import a csv file into an existing xls file
