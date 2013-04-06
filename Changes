@@ -5,3 +5,9 @@ Revision history for Win32-Scsv
 
 0.02    05 Apr 2013
         Add a function convxls to import a csv file into an existing xls file
+
+0.03    06 Apr 2013
+        - rename convcsv()  into xls_2_csv()
+        - rename convxls()  into csv_2_xls()
+        - rename emptyxls() into empty_xls()
+        - allow csv_2_xls() without template, also allow more formatting of columns
