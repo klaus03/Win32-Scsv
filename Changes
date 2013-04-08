@@ -11,3 +11,8 @@ Revision history for Win32-Scsv
         - rename convxls()  into csv_2_xls()
         - rename emptyxls() into empty_xls()
         - allow csv_2_xls() without template, also allow more formatting of columns
+
+0.04    08 Apr 2013
+        replace use Win32::OLE::Const 'Microsoft Excel'; by hardcoded constants
+        to resolve problems where the constant "xlExcel8" wouldn't compile for Excel 2000
+        add function get_xver()
