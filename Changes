@@ -16,3 +16,6 @@ Revision history for Win32-Scsv
         replace use Win32::OLE::Const 'Microsoft Excel'; by hardcoded constants
         to resolve problems where the constant "xlExcel8" wouldn't compile for Excel 2000
         add function get_xver()
+
+0.05    09 Apr 2013
+        Share a global instance of Win32::OLE->GetActiveObject('Excel.Application')

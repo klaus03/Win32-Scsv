@@ -12,7 +12,7 @@ require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT    = qw();
 our @EXPORT_OK = qw(xls_2_csv csv_2_xls empty_xls get_xver);
-our $VERSION   = '0.04';
+our $VERSION   = '0.05';
 
 # List of constants Win32::OLE::Const 'Microsoft Excel'
 # =====================================================
@@ -32,6 +32,8 @@ my $fmt_csv   =     6;
 my $fmt_xls   = -4143;
 my $fmt_xlsx  =    51;
 my $fmt_value = -4163;
+
+my $ole_global;
 
 # Comment by Klaus Eichner, 11/02/2012
 #
@@ -212,20 +214,21 @@ sub empty_xls {
 }
 
 sub get_excel {
-    my $appl;
+    return $ole_global if $ole_global;
 
     # use existing instance if Excel is already running
-    eval { $appl = Win32::OLE->GetActiveObject('Excel.Application') };
+    my $ol1 = eval { Win32::OLE->GetActiveObject('Excel.Application') };
     return if $@;
 
-    unless (defined $appl) {
-        $appl = Win32::OLE->new('Excel.Application', sub {$_[0]->Quit;})
+    unless (defined $ol1) {
+        $ol1 = Win32::OLE->new('Excel.Application', sub {$_[0]->Quit;})
           or return;
     }
  
-    $appl->{DisplayAlerts} = 0;
+    $ole_global = $ol1;
+    $ole_global->{DisplayAlerts} = 0;
 
-    return $appl;
+    return $ole_global;
 }
 
 1;
@@ -245,7 +248,7 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
 
     csv_2_xls('dummy.csv' => 'New.xls%Tab9', {
       'tpl' => 'Template.xls',
-      'csz' => [['H:H' => 13.71], ['O:O' => 3]],
+      'csz' => [['H:H' => 13.71], ['A:D' => 3]],
       'fmt' => [['A:A' => '#,##0.000'], ['B:B' => '\\<@\\>'], ['C:C' => 'dd/mm/yyyy hh:mm:ss']],
     });
 

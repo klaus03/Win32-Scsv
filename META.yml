@@ -1,5 +1,5 @@
 ---
-abstract: 'Convert Excel file to CSV using Win32::OLE'
+abstract: 'Convert from and to *.xls, *.csv using Win32::OLE'
 author:
   - unknown
 build_requires: {}
@@ -15,10 +15,9 @@ name: Win32-Scsv
 provides:
   Win32::Scsv:
     file: lib/Win32/Scsv.pm
-    version: 0.04
+    version: 0.05
 requires:
   Win32::OLE: 0
-  Win32::OLE::Const: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.04
+version: 0.05
