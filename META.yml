@@ -15,9 +15,10 @@ name: Win32-Scsv
 provides:
   Win32::Scsv:
     file: lib/Win32/Scsv.pm
-    version: 0.05
+    version: 0.06
 requires:
   Win32::OLE: 0
+  Win32::OLE::Variant: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.05
+version: 0.06

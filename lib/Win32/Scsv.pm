@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Win32::OLE;
+use Win32::OLE::Variant;
 use Carp;
 use File::Spec;
 use File::Copy;
@@ -12,7 +13,7 @@ require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT    = qw();
 our @EXPORT_OK = qw(xls_2_csv csv_2_xls empty_xls get_xver);
-our $VERSION   = '0.05';
+our $VERSION   = '0.06';
 
 # List of constants Win32::OLE::Const 'Microsoft Excel'
 # =====================================================
@@ -32,6 +33,9 @@ my $fmt_csv   =     6;
 my $fmt_xls   = -4143;
 my $fmt_xlsx  =    51;
 my $fmt_value = -4163;
+
+my $vtfalse = Variant(VT_BOOL, 0);
+my $vttrue  = Variant(VT_BOOL, 1);
 
 my $ole_global;
 
@@ -109,9 +113,10 @@ sub csv_2_xls {
     my ($xls_name, $xls_snumber) = $_[1] =~ m{\A ([^%]*) % ([^%]*) \z}xms ? ($1, $2) : ($_[1], 1);
     my $csv_name = $_[0];
 
-    my $tpl_name = $_[2] && defined($_[2]{'tpl'}) ? $_[2]{'tpl'}    : '';
-    my @col_size = $_[2] && defined($_[2]{'csz'}) ? @{$_[2]{'csz'}} : ();
-    my @col_fmt  = $_[2] && defined($_[2]{'fmt'}) ? @{$_[2]{'fmt'}} : ();
+    my $tpl_name   = $_[2] && defined($_[2]{'tpl'})  ? $_[2]{'tpl'}    : '';
+    my @col_size   = $_[2] && defined($_[2]{'csz'})  ? @{$_[2]{'csz'}} : ();
+    my @col_fmt    = $_[2] && defined($_[2]{'fmt'})  ? @{$_[2]{'fmt'}} : ();
+    my $sheet_prot = $_[2] && defined($_[2]{'prot'}) ? $_[2]{'prot'}   : 0;
 
     my $init_new = 0;
 
@@ -174,6 +179,7 @@ sub csv_2_xls {
     my $xls_sheet = $xls_book->Worksheets($xls_snumber) or croak "Can't find Sheet '$xls_snumber' in xls_abs '$xls_abs'";
 
     $xls_sheet->Activate; # "...->Activate" is necessary in order to allow "...Range('A1')->Select" later to be effective
+    $xls_sheet->Unprotect; # unprotect the sheet in any case...
     $xls_sheet->Columns($_->[0])->{NumberFormat} = $_->[1] for @col_fmt;
 
     unless ($csv_abs eq '') {
@@ -191,6 +197,15 @@ sub csv_2_xls {
     $xls_sheet->Columns($_->[0])->{ColumnWidth}  = $_->[1] for @col_size;
 
     $xls_sheet->Range('A1')->Select;
+
+    if ($sheet_prot) {
+        $xls_sheet->Protect({
+          DrawingObjects => $vttrue, 
+          Contents       => $vttrue, 
+          Scenarios      => $vttrue,
+        });
+    }
+
     $xls_book->SaveAs($xls_abs, $xls_format); # ...always use SaveAs(), never use Save() here ...
     $xls_book->Close;
 }
@@ -247,9 +262,10 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     xls_2_csv('Test Excel File.xlsx%Tabelle Test');
 
     csv_2_xls('dummy.csv' => 'New.xls%Tab9', {
-      'tpl' => 'Template.xls',
-      'csz' => [['H:H' => 13.71], ['A:D' => 3]],
-      'fmt' => [['A:A' => '#,##0.000'], ['B:B' => '\\<@\\>'], ['C:C' => 'dd/mm/yyyy hh:mm:ss']],
+      'tpl'  => 'Template.xls',
+      'csz'  => [['H:H' => 13.71], ['A:D' => 3]],
+      'fmt'  => [['A:A' => '#,##0.000'], ['B:B' => '\\<@\\>'], ['C:C' => 'dd/mm/yyyy hh:mm:ss']],
+      'prot' => 1,
     });
 
     empty_xls('abc.xls');

@@ -19,3 +19,7 @@ Revision history for Win32-Scsv
 
 0.05    09 Apr 2013
         Share a global instance of Win32::OLE->GetActiveObject('Excel.Application')
+
+0.06    10 Apr 2013
+        add an option { 'prot' => 1 } to protect the sheet *after* it has been
+        written to
