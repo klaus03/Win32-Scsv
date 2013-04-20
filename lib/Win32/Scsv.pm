@@ -12,8 +12,8 @@ use File::Copy;
 require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT    = qw();
-our @EXPORT_OK = qw(xls_2_csv csv_2_xls empty_xls get_xver);
-our $VERSION   = '0.06';
+our @EXPORT_OK = qw(xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver);
+our $VERSION   = '0.07';
 
 # List of constants Win32::OLE::Const 'Microsoft Excel'
 # =====================================================
@@ -57,12 +57,21 @@ my $ole_global;
 #
 # ...I found the following site to identify the different Excel versions (12.0 -> 2007, 11.0 -> 2003, etc...):
 # http://www.mrexcel.com/forum/excel-questions/357733-visual-basic-applications-test-finding-excel-version.html
+#
+# ...I found the following blog ('robhammond.co') to extract Excel macros -- see below subroutine xls_2_vbs()...
+# http://robhammond.co/blog/export-vba-code-from-excel-files-using-perl/
+#
+# ...in this blog ('robhammond.co'), the following 3 additional links were mentioned:
+# http://www.perlmonks.org/?node_id=927532
+# http://www.perlmonks.org/?node_id=953718
+# http://access.mvps.org/access/general/gen0022.htm
 
 sub get_xver {
     my $ole_excel = get_excel() or croak "Can't start Excel";
 
     my $ver = $ole_excel->Version;
     my $prd =
+      $ver eq '14.0' ? '2010' :
       $ver eq '12.0' ? '2007' :
       $ver eq '11.0' ? '2003' :
       $ver eq '10.0' ? '2002' :
@@ -210,6 +219,66 @@ sub csv_2_xls {
     $xls_book->Close;
 }
 
+sub xls_2_vbs {
+    my ($xls_name, $vbs_name) = @_;
+
+    my $list = slurp_vbs($xls_name);
+
+    open my $ofh, '>', $vbs_name or croak "Can't write to '$vbs_name' because $!";
+
+    for my $l (@$list) {
+        say {$ofh} "' **>> ", '=' x 50;
+        say {$ofh} "' **>> ", 'Module: ', $l->{'NAME'};
+        say {$ofh} "' **>> ", '=' x 50;
+        say {$ofh} $l->{'CODE'};
+        say {$ofh} "' **>> ", '-' x 50;
+    }
+
+    close $ofh;
+}
+
+sub slurp_vbs {
+    my ($xls_name) = @_;
+
+    unless ($xls_name =~ m{\A (.*) \. (xls x?) \z}xmsi) {
+        croak "xls_name '$xls_name' does not have an Excel extension (*.xls, *.xlsx)";
+    }
+
+    my ($xls_stem, $xls_ext) = ($1, lc($2));
+
+    unless (-f $xls_name) {
+        croak "xls_name '$xls_name' not found";
+    }
+
+    my $xls_abs = File::Spec->rel2abs($xls_name); $xls_abs =~ s{/}'\\'xmsg;
+
+    my $ole_excel = get_excel() or croak "Can't start Excel";
+
+    my $xls_book  = $ole_excel->Workbooks->Open($xls_abs) or croak "Can't Workbooks->Open xls_abs '$xls_abs'";
+    my $xls_proj  = $xls_book->{VBProject}                or croak "Can't create object 'VBProject'";
+    my $xls_clist = $xls_proj->{VBComponents}             or croak "Can't create object 'VBComponents'";
+
+    my $mlist = [];
+
+    for my $xls_cele (in $xls_clist) {
+        my $modname = $xls_cele->Name // '?';
+        my $xls_vb  = $xls_cele->{CodeModule}
+          or croak "Can't create object 'CodeModule' for modname '$modname'";
+
+        my $lcount = $xls_vb->{CountOfLines};
+
+        if ($lcount) {
+            my $body = join '', $xls_vb->Lines(1, $lcount);
+            $body =~ s{\r}''xmsg; # fix superfluous linefeeds 
+            push @$mlist, { 'NAME' => $modname, 'CODE' => $body };
+        }
+    }
+
+    $xls_book->Close;
+
+    return $mlist;
+}
+
 sub empty_xls {
     my $xls_name = $_[0];
 
@@ -256,22 +325,31 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
 
 =head1 SYNOPSIS
 
-    use Win32::Scsv qw(xls_2_csv csv_2_xls empty_xls get_xver);
-
-    xls_2_csv('Test Excel File.xlsx%Tabelle3' => 'dummy.csv');
-    xls_2_csv('Test Excel File.xlsx%Tabelle Test');
-
-    csv_2_xls('dummy.csv' => 'New.xls%Tab9', {
-      'tpl'  => 'Template.xls',
-      'csz'  => [['H:H' => 13.71], ['A:D' => 3]],
-      'fmt'  => [['A:A' => '#,##0.000'], ['B:B' => '\\<@\\>'], ['C:C' => 'dd/mm/yyyy hh:mm:ss']],
-      'prot' => 1,
-    });
-
-    empty_xls('abc.xls');
-    empty_xls('def.xlsx');
+    use Win32::Scsv qw(xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver);
 
     my ($ver, $product) = get_xver;
+
+    xls_2_csv('Test1.xls');
+    xls_2_csv('Test1.xls' => 'dummy.csv');
+    csv_2_xls('dummy.csv' => 'Test2.xls');
+    xls_2_vbs('Test1.xls' => 'dummy.vbs');
+    empty_xls('Test2.xls');
+
+    say $_->{'NAME'}, ' => ', $_->{'CODE'} for @{slurp_vbs('Test3.xls')};
+
+    csv_2_xls('dummy.csv' => 'New.xlsx%Tab9', {
+      'tpl'  => 'Template.xls',
+      'prot' => 1,
+      'csz'  => [
+         ['H:H' => 13.71],
+         ['A:D' => 3],
+      ],
+      'fmt'  => [
+         ['A:A' => '#,##0.000'],
+         ['B:B' => '\\<@\\>'],
+         ['C:C' => 'dd/mm/yyyy hh:mm:ss'],
+      ],
+    });
 
 =head1 AUTHOR
 
