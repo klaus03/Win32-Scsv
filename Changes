@@ -26,3 +26,14 @@ Revision history for Win32-Scsv
 
 0.07    20 Apr 2013
         add a new function xls_2_vbs() to extract macros from an xls file
+
+0.08    21 Aug 2013
+        In subroutine csv_2_xls():
+        Replace the one old line "$xls_sheet->Range('A1')->Select;"
+        by several, multiple new lines:
+
+          $ole_excel->ActiveWindow->{ScrollColumn} = 1;
+          $ole_excel->ActiveWindow->{ScrollRow}    = 1;
+          my $pos_row = $ole_excel->ActiveWindow->{ScrollRow};
+          my $pos_col = $ole_excel->ActiveWindow->{ScrollColumn};
+          $xls_sheet->Cells($pos_row, $pos_col)->Select;

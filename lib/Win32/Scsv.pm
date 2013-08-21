@@ -13,7 +13,7 @@ require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT    = qw();
 our @EXPORT_OK = qw(xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver);
-our $VERSION   = '0.07';
+our $VERSION   = '0.08';
 
 # List of constants Win32::OLE::Const 'Microsoft Excel'
 # =====================================================
@@ -205,7 +205,57 @@ sub csv_2_xls {
 
     $xls_sheet->Columns($_->[0])->{ColumnWidth}  = $_->[1] for @col_size;
 
-    $xls_sheet->Range('A1')->Select;
+    #~ http://www.mrexcel.com/forum/excel-questions/275645-identifying-freeze-panes-position-sheet-using-visual-basic-applications.html 
+    #~ The command "$ole_excel->ActiveWindow->Panes($pi)->VisibleRange->Address"  has currently no use,
+    #~ but you never know what it might be good for in the future...
+    #~
+    #~ Deb-0010: PCount = 4
+    #~ Deb-0020: Pane 1 = '$A$1:$E$1'
+    #~ Deb-0020: Pane 2 = '$F$1:$AA$1'
+    #~ Deb-0020: Pane 3 = '$A$45:$E$102'
+    #~ Deb-0020: Pane 4 = '$F$45:$AA$102'
+    #~
+    #~ print "Deb-0010: PCount = ", $ole_excel->ActiveWindow->Panes->Count, "\n";
+    #~ for my $pi (1..$ole_excel->ActiveWindow->Panes->Count) {
+    #~     print "Deb-0020: Pane $pi = '", $ole_excel->ActiveWindow->Panes($pi)->VisibleRange->Address, "'\n";
+    #~ }
+    #~
+    #~ However, "FreezePanes", "ScrollRow", "ScrollColumn" and "VisibleRange" are more useful...
+    #~
+    #~ print "Deb-0030: FreezePanes      = '", $ole_excel->ActiveWindow->FreezePanes,          "'\n";
+    #~ print "Deb-0040: ScrollRow        = '", $ole_excel->ActiveWindow->ScrollRow,            "'\n";
+    #~ print "Deb-0050: ScrollColumn     = '", $ole_excel->ActiveWindow->ScrollColumn,         "'\n";
+    #~ print "Deb-0060: VisibleRange     = '", $ole_excel->ActiveWindow->VisibleRange,         "'\n";
+    #~ print "Deb-0070: VisibleRange-Row = '", $ole_excel->ActiveWindow->VisibleRange->Row,    "'\n";
+    #~ print "Deb-0070: VisibleRange-Col = '", $ole_excel->ActiveWindow->VisibleRange->Column, "'\n";
+    #~
+    #~ $ole_excel->ActiveWindow->VisibleRange->Select;
+
+    #~ http://stackoverflow.com/questions/3232920/how-can-i-programmatically-freeze-the-top-row-of-an-excel-worksheet-in-excel-200
+    #~ Dim r As Range
+    #~ Set r = ActiveCell
+    #~ Range("A2").Select
+    #~ With ActiveWindow
+    #~     .FreezePanes = False
+    #~     .ScrollRow = 1
+    #~     .ScrollColumn = 1
+    #~     .FreezePanes = True
+    #~     .ScrollRow = r.Row
+    #~ End With
+    #~ r.Select
+
+    # Be aware: Even if we try to set ActiveWindow->{ScrollColumn}/{ScrollRow} to "1", this might not succeed,
+    # because of frozen panes in the active window. As a consequence, ActiveWindow->{ScrollColumn}/{ScrollRow}
+    # could in fact be a value that differs from the original value "1". (this is reflected in the two variables
+    # $pos_row/$pos_col).
+
+    $ole_excel->ActiveWindow->{ScrollColumn} = 1;
+    $ole_excel->ActiveWindow->{ScrollRow}    = 1;
+
+    my $pos_row = $ole_excel->ActiveWindow->{ScrollRow};
+    my $pos_col = $ole_excel->ActiveWindow->{ScrollColumn};
+
+    $xls_sheet->Cells($pos_row, $pos_col)->Select;
 
     if ($sheet_prot) {
         $xls_sheet->Protect({
