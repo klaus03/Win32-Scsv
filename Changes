@@ -37,3 +37,7 @@ Revision history for Win32-Scsv
           my $pos_row = $ole_excel->ActiveWindow->{ScrollRow};
           my $pos_col = $ole_excel->ActiveWindow->{ScrollColumn};
           $xls_sheet->Cells($pos_row, $pos_col)->Select;
+
+0.09    21 Oct 2013
+        use Win32::OLE::Const 'Microsoft Excel';
+        Add subroutines: open_xls_book(), open_xls_sheet(), get_lat_row(), get_last_col()

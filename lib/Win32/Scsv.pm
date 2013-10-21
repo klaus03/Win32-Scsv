@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Win32::OLE;
+use Win32::OLE::Const 'Microsoft Excel';
 use Win32::OLE::Variant;
 use Carp;
 use File::Spec;
@@ -12,27 +13,14 @@ use File::Copy;
 require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT    = qw();
-our @EXPORT_OK = qw(xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver);
-our $VERSION   = '0.08';
+our @EXPORT_OK = qw(
+  xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver
+  open_xls_book open_xls_sheet get_last_row get_last_col
+);
 
-# List of constants Win32::OLE::Const 'Microsoft Excel'
-# =====================================================
-# xlCSV             =     6
-# xlExcel2          =    16
-# xlExcel3          =    29
-# xlExcel4          =    33
-# xlExcel5          =    39
-# xlExcel7          =    39
-# xlExcel9795       =    43
-# xlOpenXMLWorkbook =    51
-# xlExcel8          =    56
-# xlNormal          = -4143
-# xlPasteValues     = -4163
+our $VERSION   = '0.09';
 
-my $fmt_csv   =     6;
-my $fmt_xls   = -4143;
-my $fmt_xlsx  =    51;
-my $fmt_value = -4163;
+my $OpenXMLWorkbook = 51; # xlOpenXMLWorkbook
 
 my $vtfalse = Variant(VT_BOOL, 0);
 my $vttrue  = Variant(VT_BOOL, 1);
@@ -114,7 +102,7 @@ sub xls_2_csv {
        or croak "Can't find Sheet '$xls_snumber' in xls_abs '$xls_abs'";
 
     $xls_sheet->Activate;
-    $xls_book->SaveAs($csv_abs, $fmt_csv);
+    $xls_book->SaveAs($csv_abs, xlCSV);
     $xls_book->Close;
 }
 
@@ -137,7 +125,7 @@ sub csv_2_xls {
     my ($xls_stem, $xls_ext) = $xls_name =~ m{\A (.*) \. (xls x?) \z}xmsi ? ($1, lc($2)) :
       croak "xls_name '$xls_name' does not have an Excel extension of the right type (*.xls, *.xlsx)";
 
-    my $xls_format = $xls_ext eq 'xls' ? $fmt_xls : $fmt_xlsx;
+    my $xls_format = $xls_ext eq 'xls' ? xlNormal : $OpenXMLWorkbook;
 
     my ($tpl_stem, $tpl_ext) =
       $tpl_name eq ''                            ? ('', '')     :
@@ -197,7 +185,7 @@ sub csv_2_xls {
 
         $xls_sheet->Cells->ClearContents;
         $csv_sheet->Cells->Copy;
-        $xls_sheet->Range('A1')->PasteSpecial($fmt_value);
+        $xls_sheet->Range('A1')->PasteSpecial(xlPasteValues);
         $xls_sheet->Cells->EntireColumn->AutoFit;
 
         $csv_book->Close;
@@ -335,7 +323,7 @@ sub empty_xls {
     my ($xls_stem, $xls_ext) = $xls_name =~ m{\A (.*) \. (xls x?) \z}xmsi ? ($1, lc($2)) :
       croak "xls_name '$xls_name' does not have an Excel extension (*.xls, *.xlsx)";
 
-    my $xls_format = $xls_ext eq 'xls' ? $fmt_xls : $fmt_xlsx;
+    my $xls_format = $xls_ext eq 'xls' ? xlNormal : $OpenXMLWorkbook;
 
     my $xls_abs = File::Spec->rel2abs($xls_name); $xls_abs =~ s{/}'\\'xmsg;
 
@@ -365,6 +353,52 @@ sub get_excel {
     return $ole_global;
 }
 
+sub open_xls_book {
+    my ($prm_book_name) = @_;
+ 
+    unless ($prm_book_name =~ m{\A (.*) \. (xls x?) \z}xmsi) {
+        croak "xls_name '$prm_book_name' does not have an Excel extension (*.xls, *.xlsx)";
+    }
+ 
+    unless (-f $prm_book_name) {
+        croak "xls_name '$prm_book_name' not found";
+    }
+ 
+    my $prm_book_abs = File::Spec->rel2abs($prm_book_name); $prm_book_abs =~ s{/}'\\'xmsg;
+ 
+    my $obj_excel = Win32::Scsv::get_excel()                  or croak "Can't start Excel";
+    my $obj_book = $obj_excel->Workbooks->Open($prm_book_abs) or croak "Can't Workbooks->Open xls_abs '$prm_book_abs'";
+ 
+    return ($obj_excel, $obj_book);
+}
+
+sub open_xls_sheet {
+    my ($prm_book_name, $prm_sheet_name) = $_[0] =~ m{\A ([^%]*) % ([^%]*) \z}xms ? ($1, $2) : ($_[0], 1);
+
+    my ($obj_excel, $obj_book) = open_xls_book($prm_book_name);
+    my $obj_sheet = $obj_book->Worksheets($prm_sheet_name) or croak "Can't find Sheet '$prm_sheet_name' in Book '$prm_book_name'";
+ 
+    $obj_sheet->Activate;
+
+    return ($obj_excel, $obj_book, $obj_sheet);
+}
+
+sub get_last_row {
+   $_[0]->UsedRange->Find({
+     What            => '*',
+     SearchDirection => xlPrevious,
+     SearchOrder     => xlByRows,
+   })->{Row};
+}
+
+sub get_last_col {
+   $_[0]->UsedRange->Find({
+     What            => '*',
+     SearchDirection => xlPrevious,
+     SearchOrder     => xlByColumns,
+   })->{Column};
+}
+
 1;
 
 __END__
@@ -375,7 +409,10 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
 
 =head1 SYNOPSIS
 
-    use Win32::Scsv qw(xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver);
+    use Win32::Scsv qw(
+      xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver
+      open_xls_book open_xls_sheet get_last_row get_last_col
+    );
 
     my ($ver, $product) = get_xver;
 
@@ -400,6 +437,15 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
          ['C:C' => 'dd/mm/yyyy hh:mm:ss'],
       ],
     });
+
+    my ($ox, $ob, $os) = open_xls_sheet('Test01.xls%Sheet5');
+
+    my $last_row = get_last_row($os);
+    my $last_col = get_last_col($os);
+
+    say 'last row = ', $last_row, ', last col = ', $last_col;
+
+    $ox->Quit;
 
 =head1 AUTHOR
 
