@@ -14,11 +14,11 @@ require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT    = qw();
 our @EXPORT_OK = qw(
-  xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver
-  open_xls_book open_xls_sheet get_last_row get_last_col
+  xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls
+  get_xver get_book get_last_row get_last_col
 );
 
-our $VERSION   = '0.09';
+our $VERSION = '0.10';
 
 my $OpenXMLWorkbook = 51; # xlOpenXMLWorkbook
 
@@ -353,10 +353,10 @@ sub get_excel {
     return $ole_global;
 }
 
-sub open_xls_book {
+sub get_book {
     my ($prm_book_name) = @_;
  
-    unless ($prm_book_name =~ m{\A (.*) \. (xls x?) \z}xmsi) {
+    unless ($prm_book_name =~ m{\. xls x? \z}xmsi) {
         croak "xls_name '$prm_book_name' does not have an Excel extension (*.xls, *.xlsx)";
     }
  
@@ -366,21 +366,10 @@ sub open_xls_book {
  
     my $prm_book_abs = File::Spec->rel2abs($prm_book_name); $prm_book_abs =~ s{/}'\\'xmsg;
  
-    my $obj_excel = Win32::Scsv::get_excel()                  or croak "Can't start Excel";
-    my $obj_book = $obj_excel->Workbooks->Open($prm_book_abs) or croak "Can't Workbooks->Open xls_abs '$prm_book_abs'";
+    my $obj_excel = get_excel()                                or croak "Can't start Excel";
+    my $obj_book  = $obj_excel->Workbooks->Open($prm_book_abs) or croak "Can't Workbooks->Open xls_abs '$prm_book_abs'";
  
-    return ($obj_excel, $obj_book);
-}
-
-sub open_xls_sheet {
-    my ($prm_book_name, $prm_sheet_name) = $_[0] =~ m{\A ([^%]*) % ([^%]*) \z}xms ? ($1, $2) : ($_[0], 1);
-
-    my ($obj_excel, $obj_book) = open_xls_book($prm_book_name);
-    my $obj_sheet = $obj_book->Worksheets($prm_sheet_name) or croak "Can't find Sheet '$prm_sheet_name' in Book '$prm_book_name'";
- 
-    $obj_sheet->Activate;
-
-    return ($obj_excel, $obj_book, $obj_sheet);
+    return $obj_book;
 }
 
 sub get_last_row {
@@ -438,14 +427,15 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
       ],
     });
 
-    my ($ox, $ob, $os) = open_xls_sheet('Test01.xls%Sheet5');
+    my $ob = get_book('Test01.xls');
+    my $os = $ob->Worksheets('Sheet5') or die "Can't find Sheet";
 
     my $last_row = get_last_row($os);
     my $last_col = get_last_col($os);
 
     say 'last row = ', $last_row, ', last col = ', $last_col;
 
-    $ox->Quit;
+    $ob->Close;
 
 =head1 AUTHOR
 
