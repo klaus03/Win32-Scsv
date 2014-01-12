@@ -29,7 +29,7 @@
    "provides" : {
       "Win32::Scsv" : {
          "file" : "lib/Win32/Scsv.pm",
-         "version" : "0.10"
+         "version" : "0.11"
       }
    },
    "release_status" : "stable",
@@ -38,5 +38,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.10"
+   "version" : "0.11"
 }

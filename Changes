@@ -42,8 +42,14 @@ Revision history for Win32-Scsv
         use Win32::OLE::Const 'Microsoft Excel';
         Add subroutines: open_xls_book(), open_xls_sheet(), get_lat_row(), get_last_col()
 
-0.10    22 Oct 12013
+0.10    22 Oct 2013
         Refactor open_xls_book(), open_xls_sheet():
         my $ob = get_book('Test01.xls');
         my $os = $ob->Worksheets('Sheet5') or die "Can't find Sheet";
         $ob->Close;
+
+0.11    12 Jan 2014
+        refactor sub slurp_vbs()
+        new sub import_vbs_book()
+        new sub tmp_book()
+        new sub save_pdf()

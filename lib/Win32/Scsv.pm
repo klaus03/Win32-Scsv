@@ -14,11 +14,11 @@ require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT    = qw();
 our @EXPORT_OK = qw(
-  xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls
-  get_xver get_book get_last_row get_last_col
+  xls_2_csv csv_2_xls xls_2_vbs slurp_vbs import_vbs_book empty_xls
+  get_xver get_book get_last_row get_last_col tmp_book
 );
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 my $OpenXMLWorkbook = 51; # xlOpenXMLWorkbook
 
@@ -27,9 +27,10 @@ my $vttrue  = Variant(VT_BOOL, 1);
 
 my $ole_global;
 
-# Comment by Klaus Eichner, 11/02/2012
+# Comment by Klaus Eichner, 11-Feb-2012:
+# **************************************
 #
-# I have copied the example code from
+# I have copied the sample code from
 # http://bytes.com/topic/perl/answers/770333-how-convert-csv-file-excel-file
 #
 # ...and from
@@ -53,6 +54,12 @@ my $ole_global;
 # http://www.perlmonks.org/?node_id=927532
 # http://www.perlmonks.org/?node_id=953718
 # http://access.mvps.org/access/general/gen0022.htm
+
+# Comment by Klaus Eichner, 12-Jan-2014:
+# **************************************
+#
+# I have copied sample code for import_vbs_file() from
+# http://www.mrexcel.com/articles/copy-vba-module.php
 
 sub get_xver {
     my $ole_excel = get_excel() or croak "Can't start Excel";
@@ -265,11 +272,11 @@ sub xls_2_vbs {
     open my $ofh, '>', $vbs_name or croak "Can't write to '$vbs_name' because $!";
 
     for my $l (@$list) {
-        say {$ofh} "' **>> ", '=' x 50;
-        say {$ofh} "' **>> ", 'Module: ', $l->{'NAME'};
-        say {$ofh} "' **>> ", '=' x 50;
-        say {$ofh} $l->{'CODE'};
-        say {$ofh} "' **>> ", '-' x 50;
+        print {$ofh} "' **>> ", '=' x 50, "\n";
+        print {$ofh} "' **>> ", 'Module: ', $l->{'NAME'}, "\n";
+        print {$ofh} "' **>> ", '=' x 50, "\n";
+        print {$ofh} $l->{'CODE'}, "\n";
+        print {$ofh} "' **>> ", '-' x 50, "\n";
     }
 
     close $ofh;
@@ -278,27 +285,14 @@ sub xls_2_vbs {
 sub slurp_vbs {
     my ($xls_name) = @_;
 
-    unless ($xls_name =~ m{\A (.*) \. (xls x?) \z}xmsi) {
-        croak "xls_name '$xls_name' does not have an Excel extension (*.xls, *.xlsx)";
-    }
+    my $xls_book  = get_book($xls_name);
 
-    my ($xls_stem, $xls_ext) = ($1, lc($2));
-
-    unless (-f $xls_name) {
-        croak "xls_name '$xls_name' not found";
-    }
-
-    my $xls_abs = File::Spec->rel2abs($xls_name); $xls_abs =~ s{/}'\\'xmsg;
-
-    my $ole_excel = get_excel() or croak "Can't start Excel";
-
-    my $xls_book  = $ole_excel->Workbooks->Open($xls_abs) or croak "Can't Workbooks->Open xls_abs '$xls_abs'";
-    my $xls_proj  = $xls_book->{VBProject}                or croak "Can't create object 'VBProject'";
-    my $xls_clist = $xls_proj->{VBComponents}             or croak "Can't create object 'VBComponents'";
+    my $xls_proj   = $xls_book->{VBProject}    or croak "Can't create object 'VBProject'";
+    my $xls_vbcomp = $xls_proj->{VBComponents} or croak "Can't create object 'VBComponents'";
 
     my $mlist = [];
 
-    for my $xls_cele (in $xls_clist) {
+    for my $xls_cele (in $xls_vbcomp) {
         my $modname = $xls_cele->Name // '?';
         my $xls_vb  = $xls_cele->{CodeModule}
           or croak "Can't create object 'CodeModule' for modname '$modname'";
@@ -317,6 +311,17 @@ sub slurp_vbs {
     return $mlist;
 }
 
+sub import_vbs_book {
+    my ($xls_book, $vbs_name) = @_;
+
+    my $vbs_abs = File::Spec->rel2abs($vbs_name); $vbs_abs =~ s{/}'\\'xmsg;
+
+    my $xls_proj   = $xls_book->{VBProject}    or croak "Can't create object 'VBProject'";
+    my $xls_vbcomp = $xls_proj->{VBComponents} or croak "Can't create object 'VBComponents'";
+
+    $xls_vbcomp->Import($vbs_abs);
+}
+
 sub empty_xls {
     my $xls_name = $_[0];
 
@@ -333,6 +338,13 @@ sub empty_xls {
 
     $xls_book->SaveAs($xls_abs, $xls_format);
     $xls_book->Close;
+}
+
+sub tmp_book {
+    my $ole_excel = get_excel() or croak "Can't start Excel";
+    my $xls_book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
+
+    return $xls_book;
 }
 
 sub get_excel {
