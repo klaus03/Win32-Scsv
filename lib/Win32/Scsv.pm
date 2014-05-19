@@ -18,7 +18,7 @@ our @EXPORT_OK = qw(
   get_xver get_book get_last_row get_last_col tmp_book
 );
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 my $OpenXMLWorkbook = 51; # xlOpenXMLWorkbook
 
@@ -107,6 +107,8 @@ sub xls_2_csv {
 
     my $xls_sheet = $xls_book->Worksheets($xls_snumber)
        or croak "Can't find Sheet '$xls_snumber' in xls_abs '$xls_abs'";
+
+    $xls_sheet->{'Visible'} = $vttrue;
 
     $xls_sheet->Activate;
     $xls_book->SaveAs($csv_abs, xlCSV);
