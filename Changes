@@ -56,3 +56,6 @@ Revision history for Win32-Scsv
 
 0.12    19 May 2014
         Add instruction "Sheets("Zzzz").Visible = True" to xls_2_csv()
+
+0.13    25 Jul 2014
+        New function open_excel()

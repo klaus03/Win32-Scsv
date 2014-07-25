@@ -15,10 +15,10 @@ our @ISA       = qw(Exporter);
 our @EXPORT    = qw();
 our @EXPORT_OK = qw(
   xls_2_csv csv_2_xls xls_2_vbs slurp_vbs import_vbs_book empty_xls
-  get_xver get_book get_last_row get_last_col tmp_book
+  get_xver get_book get_last_row get_last_col tmp_book open_excel
 );
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 my $OpenXMLWorkbook = 51; # xlOpenXMLWorkbook
 
@@ -26,6 +26,25 @@ my $vtfalse = Variant(VT_BOOL, 0);
 my $vttrue  = Variant(VT_BOOL, 1);
 
 my $ole_global;
+
+my $excel_exe;
+
+for my $office ('', '11', '12', '14') {
+    for my $x86 ('', ' (x86)') {
+        my $Rn = 'C:\Program Files'.$x86.
+          '\Microsoft Office\OFFICE'.$office.'\EXCEL.EXE';
+
+        $excel_exe = $Rn if -f $Rn;
+    }
+}
+
+sub open_excel {
+    unless (defined $excel_exe) {
+        croak "Can't find EXCEL.EXE";
+    }
+
+    system qq{start /min cmd.exe /k ""$excel_exe" "$_[0]" || pause & exit"};
+}
 
 # Comment by Klaus Eichner, 11-Feb-2012:
 # **************************************
@@ -414,7 +433,7 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
 
     use Win32::Scsv qw(
       xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver
-      open_xls_book open_xls_sheet get_last_row get_last_col
+      open_xls_book open_xls_sheet get_last_row get_last_col open_excel
     );
 
     my ($ver, $product) = get_xver;
@@ -450,6 +469,8 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     say 'last row = ', $last_row, ', last col = ', $last_col;
 
     $ob->Close;
+
+    open_excel('C:\Data\Test01.xls');
 
 =head1 AUTHOR
 
