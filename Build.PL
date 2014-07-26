@@ -4,6 +4,9 @@ use 5.008;
 
 use Module::Build;
 
+use Win32::OLE::Const 'Microsoft Excel';
+my $avail = xlCSV; # test that Excel is readily available
+
 Module::Build->new(
   module_name        => 'Win32::Scsv',
   license            => 'perl',

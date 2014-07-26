@@ -59,3 +59,6 @@ Revision history for Win32-Scsv
 
 0.13    25 Jul 2014
         New function open_excel()
+
+0.14    26 Jul 2014
+        Add a check 'my $avail = xlCSV' into build.pm / Makefile.pl
