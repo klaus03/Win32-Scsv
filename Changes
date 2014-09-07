@@ -1,64 +1,126 @@
-Revision history for Win32-Scsv
+Revision history for Win32::Scsv
 
-0.01    11 Feb 2012
-        First version, released on an unsuspecting world.
+0.15 - 2014-09-07T20:01:32+01:00
 
-0.02    05 Apr 2013
-        Add a function convxls to import a csv file into an existing xls file
+  [DOCUMENTATION]
 
-0.03    06 Apr 2013
-        - rename convcsv()  into xls_2_csv()
-        - rename convxls()  into csv_2_xls()
-        - rename emptyxls() into empty_xls()
-        - allow csv_2_xls() without template, also allow more formatting of columns
+  - Add a .gitignore file
 
-0.04    08 Apr 2013
-        replace use Win32::OLE::Const 'Microsoft Excel'; by hardcoded constants
-        to resolve problems where the constant "xlExcel8" wouldn't compile for Excel 2000
-        add function get_xver()
+  - Changelog dates are better written as YYYY.MM.DD and probably ordered in
+    the other, descending, direction
+    Remark: I have decided to follow the ISO 8601 standard at
+    http://www.w3.org/TR/NOTE-datetime
 
-0.05    09 Apr 2013
-        Share a global instance of Win32::OLE->GetActiveObject('Excel.Application')
+  - Just use a Makefile.PL and not a Build.PL the latter does not have any
+    added value any more
 
-0.06    10 Apr 2013
-        add an option { 'prot' => 1 } to protect the sheet *after* it has been
-        written to
+  - In Makefile.PL ==> meta files link to repository
 
-0.07    20 Apr 2013
-        add a new function xls_2_vbs() to extract macros from an xls file
+0.14 - 2014-07-26T12:00:00+01:00
 
-0.08    21 Aug 2013
-        In subroutine csv_2_xls():
-        Replace the one old line "$xls_sheet->Range('A1')->Select;"
-        by several, multiple new lines:
+  [DOCUMENTATION]
 
-          $ole_excel->ActiveWindow->{ScrollColumn} = 1;
-          $ole_excel->ActiveWindow->{ScrollRow}    = 1;
-          my $pos_row = $ole_excel->ActiveWindow->{ScrollRow};
-          my $pos_col = $ole_excel->ActiveWindow->{ScrollColumn};
-          $xls_sheet->Cells($pos_row, $pos_col)->Select;
+  - Add a check 'my $avail = xlCSV' into build.pm / Makefile.pl
 
-0.09    21 Oct 2013
-        use Win32::OLE::Const 'Microsoft Excel';
-        Add subroutines: open_xls_book(), open_xls_sheet(), get_lat_row(), get_last_col()
+0.13 - 2014-07-25T12:00:00+01:00
 
-0.10    22 Oct 2013
-        Refactor open_xls_book(), open_xls_sheet():
-        my $ob = get_book('Test01.xls');
-        my $os = $ob->Worksheets('Sheet5') or die "Can't find Sheet";
-        $ob->Close;
+  [ENHANCEMENTS]
 
-0.11    12 Jan 2014
-        refactor sub slurp_vbs()
-        new sub import_vbs_book()
-        new sub tmp_book()
-        new sub save_pdf()
+  - New function open_excel()
 
-0.12    19 May 2014
-        Add instruction "Sheets("Zzzz").Visible = True" to xls_2_csv()
+0.12 - 2014-05-19T12:00:00+01:00
 
-0.13    25 Jul 2014
-        New function open_excel()
+  [ENHANCEMENTS]
 
-0.14    26 Jul 2014
-        Add a check 'my $avail = xlCSV' into build.pm / Makefile.pl
+  - Add instruction "Sheets("Zzzz").Visible = True" to xls_2_csv()
+
+0.11 - 2014-01-12T12:00:00+01:00
+
+  [REFACTORING]
+
+  - refactor sub slurp_vbs()
+    new sub import_vbs_book()
+    new sub tmp_book()
+    new sub save_pdf()
+
+0.10 - 2013-10-22T12:00:00+01:00
+
+  [REFACTORING]
+
+  - Refactor open_xls_book(), open_xls_sheet():
+    my $ob = get_book('Test01.xls');
+    my $os = $ob->Worksheets('Sheet5') or die "Can't find Sheet";
+    $ob->Close;
+
+0.09 - 2013-10-21T14:00:00+01:00
+
+  [ENHANCEMENTS]
+
+  - use Win32::OLE::Const 'Microsoft Excel';
+    Add subroutines: open_xls_book(), open_xls_sheet(), get_lat_row(), get_last_col()
+
+0.08 - 2013-08-21T12:00:00+01:00
+
+  [ENHANCEMENTS]
+
+  - In subroutine csv_2_xls():
+    Replace the one old line "$xls_sheet->Range('A1')->Select;"
+    by several, multiple new lines:
+    $ole_excel->ActiveWindow->{ScrollColumn} = 1;
+    $ole_excel->ActiveWindow->{ScrollRow}    = 1;
+    my $pos_row = $ole_excel->ActiveWindow->{ScrollRow};
+    my $pos_col = $ole_excel->ActiveWindow->{ScrollColumn};
+    $xls_sheet->Cells($pos_row, $pos_col)->Select;
+
+0.07 - 2013-04-20T12:00:00+01:00
+
+  [ENHANCEMENTS]
+
+  - add a new function xls_2_vbs() to extract macros from an xls file
+
+0.06 - 2013-04-10T12:00:00+01:00
+
+  [ENHANCEMENTS]
+
+  - add an option { 'prot' => 1 } to protect the sheet *after* it has been
+    written to
+
+0.05 - 2013-04-09T12:00:00+01:00
+
+  [ENHANCEMENTS]
+
+  - Share a global instance of Win32::OLE->GetActiveObject('Excel.Application')
+
+0.04 - 2013-04-08T12:00:00+01:00
+
+  [BUG FIX]
+
+  - replace use Win32::OLE::Const 'Microsoft Excel'; by hardcoded constants
+    to resolve problems where the constant "xlExcel8" wouldn't compile for Excel 2000
+    add function get_xver()
+
+0.03 - 2013-04-06T12:00:00+01:00
+
+  [RENAMING]
+
+  - rename convcsv()  into xls_2_csv()
+
+  - rename convxls()  into csv_2_xls()
+
+  - rename emptyxls() into empty_xls()
+
+  [ENHANCEMENTS]
+
+  - allow csv_2_xls() without template, also allow more formatting of columns
+
+0.02 - 2013-04-05T12:00:00+01:00
+
+  [ENHANCEMENTS]
+
+  - Add a function convxls to import a csv file into an existing xls file
+
+0.01 - 2012-02-11T12:00:00+01:00
+
+  [ENHANCEMENTS]
+
+  - First version, released on an unsuspecting world.
