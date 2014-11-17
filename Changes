@@ -1,5 +1,11 @@
 Revision history for Win32::Scsv
 
+0.16 - 2014-11-17T12:00:00+01:00
+
+  [ENHANCEMENTS]
+
+  - get rid of number formats when converting to CSV
+
 0.15 - 2014-09-07T20:01:32+01:00
 
   [DOCUMENTATION]

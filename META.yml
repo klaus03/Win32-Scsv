@@ -22,4 +22,4 @@ requires:
   Win32::OLE::Variant: '0'
 resources:
   repository: https://github.com/klaus03/Win32-Scsv.git
-version: '0.15'
+version: '0.16'

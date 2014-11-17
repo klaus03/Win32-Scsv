@@ -18,7 +18,7 @@ our @EXPORT_OK = qw(
   get_xver get_book get_last_row get_last_col tmp_book open_excel
 );
 
-our $VERSION = '0.15';
+our $VERSION = '0.16';
 
 my $OpenXMLWorkbook = 51; # xlOpenXMLWorkbook
 
@@ -129,8 +129,16 @@ sub xls_2_csv {
 
     $xls_sheet->{'Visible'} = $vttrue;
 
-    $xls_sheet->Activate;
-    $xls_book->SaveAs($csv_abs, xlCSV);
+    my $csv_book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
+    my $csv_sheet = $csv_book->Worksheets(1) or croak "Can't find Sheet '1' in new Workbook";
+
+    $xls_sheet->Cells->Copy;
+    $csv_sheet->Range('A1')->PasteSpecial(xlPasteValues);
+    $csv_sheet->Activate;
+
+    $csv_book->SaveAs($csv_abs, xlCSV);
+
+    $csv_book->Close;
     $xls_book->Close;
 }
 
