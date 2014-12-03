@@ -4,7 +4,7 @@
       "Klaus Eichner <klaus03@gmail.com>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.98, CPAN::Meta::Converter version 2.141170",
+   "generated_by" : "ExtUtils::MakeMaker version 6.98, CPAN::Meta::Converter version 2.142060",
    "license" : [
       "perl_5"
    ],
@@ -45,5 +45,5 @@
          "web" : "https://github.com/klaus03/Win32-Scsv"
       }
    },
-   "version" : "0.16"
+   "version" : "0.17"
 }

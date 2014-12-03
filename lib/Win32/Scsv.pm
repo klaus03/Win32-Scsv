@@ -18,7 +18,7 @@ our @EXPORT_OK = qw(
   get_xver get_book get_last_row get_last_col tmp_book open_excel
 );
 
-our $VERSION = '0.16';
+our $VERSION = '0.17';
 
 my $OpenXMLWorkbook = 51; # xlOpenXMLWorkbook
 
@@ -390,6 +390,24 @@ sub get_excel {
  
     $ole_global = $ol1;
     $ole_global->{DisplayAlerts} = 0;
+
+    # http://www.decisionmodels.com/calcsecretsh.htm
+    # ----------------------------------------------
+    #
+    # If you need to override the way Excel initially sets the calculation mode you can set it yourself
+    # by creating a module in ThisWorkbook (doubleclick ThisWorkbook in the Project Explorer window in
+    # the VBE), and adding this code. This example sets calculation to Manual.
+    #
+    # Private Sub Workbook_Open()
+    #    Application.Calculation = xlCalculationManual
+    # End Sub
+    # 
+    # Unfortunately if calculation is set to Automatic when a workbook containing this code is opened,
+    # Excel will start the recalculation process before the Open event is executed. The only way I
+    # know of to avoid this is to open a dummy workbook with a Workbook open event which sets
+    # calculation to manual and then opens the real workbook.
+
+    $ole_global->{Calculation} = xlCalculationManual;
 
     return $ole_global;
 }
