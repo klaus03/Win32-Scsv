@@ -18,8 +18,6 @@ our @EXPORT_OK = qw(
   get_xver get_book get_last_row get_last_col tmp_book open_excel
 );
 
-our $VERSION = '0.17';
-
 my $OpenXMLWorkbook = 51; # xlOpenXMLWorkbook
 
 my $vtfalse = Variant(VT_BOOL, 0);
