@@ -406,6 +406,7 @@ sub get_excel {
     # calculation to manual and then opens the real workbook.
 
     $ole_global->{Calculation} = xlCalculationManual;
+    $ole_global->{CalculateBeforeSave} = $vtfalse;
 
     return $ole_global;
 }

@@ -1,5 +1,12 @@
 Revision history for Win32-Scsv
 
+0.19 - 2015-01-25 16:59:12+01:00
+
+  [ENHANCEMENTS]
+
+  - also disable (Calculate_Before_Save)
+    $ole_global->{CalculateBeforeSave} = $vtfalse;
+
 0.18 - 2014-12-28T09:24:30+01:00
 
   [DOCUMENTATION]
