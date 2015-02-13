@@ -98,6 +98,7 @@ sub get_xver {
 sub xls_2_csv {
     my ($xls_name, $xls_snumber) = $_[0] =~ m{\A ([^%]*) % ([^%]*) \z}xms ? ($1, $2) : ($_[0], 1);
     my $csv_name = $_[1];
+    my @col_fmt  = $_[2] && defined($_[2]{'fmt'})  ? @{$_[2]{'fmt'}} : ();
 
     unless ($xls_name =~ m{\A (.*) \. (xls x?) \z}xmsi) {
         croak "xls_name '$xls_name' does not have an Excel extension (*.xls, *.xlsx)";
@@ -133,6 +134,7 @@ sub xls_2_csv {
     $xls_sheet->Cells->Copy;
     $csv_sheet->Range('A1')->PasteSpecial(xlPasteValues);
     $csv_sheet->Activate;
+    $csv_sheet->Columns($_->[0])->{NumberFormat} = $_->[1] for @col_fmt;
 
     $csv_book->SaveAs($csv_abs, xlCSV);
 

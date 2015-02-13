@@ -1,5 +1,11 @@
 Revision history for Win32-Scsv
 
+0.20 - 2015-02-12 20:24:41+01:00
+
+  [ENHANCEMENTS]
+
+  - allow formats when writing xls_2_csv()
+
 0.19 - 2015-01-25 16:59:12+01:00
 
   [ENHANCEMENTS]
