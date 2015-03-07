@@ -1,5 +1,13 @@
 Revision history for Win32-Scsv
 
+0.21 - 2015-03-07 17:43:01+01:00
+
+  [ENHANCEMENTS]
+
+  - new subroutines set_calc_manual(0|1) and set_calc_befsave(0|1)
+    introduce office 2013 -> ver 15.0
+    clean up whitespaces
+
 0.20 - 2015-02-12 20:24:41+01:00
 
   [ENHANCEMENTS]

@@ -27,7 +27,7 @@ my $ole_global;
 
 my $excel_exe;
 
-for my $office ('', '11', '12', '14') {
+for my $office ('', '11', '12', '14', '15') {
     for my $x86 ('', ' (x86)') {
         my $Rn = 'C:\Program Files'.$x86.
           '\Microsoft Office\OFFICE'.$office.'\EXCEL.EXE';
@@ -35,6 +35,12 @@ for my $office ('', '11', '12', '14') {
         $excel_exe = $Rn if -f $Rn;
     }
 }
+
+my $calc_manual  = 0;
+my $calc_befsave = 0;
+
+sub set_calc_manual  { $calc_manual  = $_[0] }
+sub set_calc_befsave { $calc_befsave = $_[0] }
 
 sub open_excel {
     unless (defined $excel_exe) {
@@ -83,6 +89,7 @@ sub get_xver {
 
     my $ver = $ole_excel->Version;
     my $prd =
+      $ver eq '15.0' ? '2013' :
       $ver eq '14.0' ? '2010' :
       $ver eq '12.0' ? '2007' :
       $ver eq '11.0' ? '2003' :
@@ -407,8 +414,8 @@ sub get_excel {
     # know of to avoid this is to open a dummy workbook with a Workbook open event which sets
     # calculation to manual and then opens the real workbook.
 
-    $ole_global->{Calculation} = xlCalculationManual;
-    $ole_global->{CalculateBeforeSave} = $vtfalse;
+    $ole_global->{Calculation} = xlCalculationManual if $calc_manual;
+    $ole_global->{CalculateBeforeSave} = $vtfalse    if $calc_befsave;
 
     return $ole_global;
 }
