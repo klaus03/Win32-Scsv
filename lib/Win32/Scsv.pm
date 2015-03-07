@@ -229,7 +229,7 @@ sub csv_2_xls {
 
     $xls_sheet->Columns($_->[0])->{ColumnWidth}  = $_->[1] for @col_size;
 
-    #~ http://www.mrexcel.com/forum/excel-questions/275645-identifying-freeze-panes-position-sheet-using-visual-basic-applications.html 
+    #~ http://www.mrexcel.com/forum/excel-questions/275645-identifying-freeze-panes-position-sheet-using-visual-basic-applications.html
     #~ The command "$ole_excel->ActiveWindow->Panes($pi)->VisibleRange->Address"  has currently no use,
     #~ but you never know what it might be good for in the future...
     #~
@@ -283,8 +283,8 @@ sub csv_2_xls {
 
     if ($sheet_prot) {
         $xls_sheet->Protect({
-          DrawingObjects => $vttrue, 
-          Contents       => $vttrue, 
+          DrawingObjects => $vttrue,
+          Contents       => $vttrue,
           Scenarios      => $vttrue,
         });
     }
@@ -330,7 +330,7 @@ sub slurp_vbs {
 
         if ($lcount) {
             my $body = join '', $xls_vb->Lines(1, $lcount);
-            $body =~ s{\r}''xmsg; # fix superfluous linefeeds 
+            $body =~ s{\r}''xmsg; # fix superfluous linefeeds
             push @$mlist, { 'NAME' => $modname, 'CODE' => $body };
         }
     }
@@ -387,7 +387,7 @@ sub get_excel {
         $ol1 = Win32::OLE->new('Excel.Application', sub {$_[0]->Quit;})
           or return;
     }
- 
+
     $ole_global = $ol1;
     $ole_global->{DisplayAlerts} = 0;
 
@@ -401,7 +401,7 @@ sub get_excel {
     # Private Sub Workbook_Open()
     #    Application.Calculation = xlCalculationManual
     # End Sub
-    # 
+    #
     # Unfortunately if calculation is set to Automatic when a workbook containing this code is opened,
     # Excel will start the recalculation process before the Open event is executed. The only way I
     # know of to avoid this is to open a dummy workbook with a Workbook open event which sets
@@ -415,20 +415,20 @@ sub get_excel {
 
 sub get_book {
     my ($prm_book_name) = @_;
- 
+
     unless ($prm_book_name =~ m{\. xls x? \z}xmsi) {
         croak "xls_name '$prm_book_name' does not have an Excel extension (*.xls, *.xlsx)";
     }
- 
+
     unless (-f $prm_book_name) {
         croak "xls_name '$prm_book_name' not found";
     }
- 
+
     my $prm_book_abs = File::Spec->rel2abs($prm_book_name); $prm_book_abs =~ s{/}'\\'xmsg;
- 
+
     my $obj_excel = get_excel()                                or croak "Can't start Excel";
     my $obj_book  = $obj_excel->Workbooks->Open($prm_book_abs) or croak "Can't Workbooks->Open xls_abs '$prm_book_abs'";
- 
+
     return $obj_book;
 }
 
