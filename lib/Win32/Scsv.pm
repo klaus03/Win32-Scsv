@@ -16,6 +16,7 @@ our @EXPORT    = qw();
 our @EXPORT_OK = qw(
   xls_2_csv csv_2_xls xls_2_vbs slurp_vbs import_vbs_book empty_xls
   get_xver get_book get_last_row get_last_col tmp_book open_excel
+  get_lang
 );
 
 my $OpenXMLWorkbook = 51; # xlOpenXMLWorkbook
@@ -100,6 +101,25 @@ sub get_xver {
 
     return ($ver, $prd) if wantarray;
     return $ver;
+}
+
+sub get_lang {
+    my $ole_excel = get_excel()            or croak "Can't start Excel";
+    my $book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
+    my $sheet = $book->Worksheets(1)       or croak "Can't find Sheet '1' in new Workbook";
+
+    $sheet->Cells(1, 1)->{'Formula'} = '=SUM(1)';
+    $sheet->Cells(1, 2)->{'Formula'} = '=SUMME(1)';
+    $sheet->Cells(1, 3)->{'Formula'} = '=SOMME(1)';
+
+    my $lang =
+      $sheet->Cells(1, 1)->{'Value'} eq '1' ? 'EN' :
+      $sheet->Cells(1, 2)->{'Value'} eq '1' ? 'DE' :
+      $sheet->Cells(1, 3)->{'Value'} eq '1' ? 'FR' : '??';
+
+    $book->Close;
+
+    return $lang;
 }
 
 sub xls_2_csv {

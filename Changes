@@ -1,5 +1,12 @@
 Revision history for Win32-Scsv
 
+0.22 - 2015-04-11 18:36:25+01:00
+
+  [ENHANCEMENTS]
+
+  - add new function get_lang()
+    returns either 'EN', 'DE' or 'FR'.
+
 0.21 - 2015-03-07 17:43:01+01:00
 
   [ENHANCEMENTS]
