@@ -16,7 +16,7 @@ our @EXPORT    = qw();
 our @EXPORT_OK = qw(
   xls_2_csv csv_2_xls xls_2_vbs slurp_vbs import_vbs_book empty_xls
   get_xver get_book get_last_row get_last_col tmp_book open_excel
-  get_lang
+  get_lang XLRef
 );
 
 my $OpenXMLWorkbook = 51; # xlOpenXMLWorkbook
@@ -475,6 +475,15 @@ sub get_last_col {
    })->{Column};
 }
 
+sub XLRef {
+    my ($col, $row) = @_;
+
+    my $c2 = int(($col - 1) / 26);
+    my $c1 = $col - $c2 * 26;
+
+    return ($c2 == 0 ? '' : chr($c2 + 64)).chr($c1 + 64).$row;
+}
+
 1;
 
 __END__
@@ -488,6 +497,7 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     use Win32::Scsv qw(
       xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver
       open_xls_book open_xls_sheet get_last_row get_last_col open_excel
+      XLRef
     );
 
     my ($ver, $product) = get_xver;
@@ -517,10 +527,11 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     my $ob = get_book('Test01.xls');
     my $os = $ob->Worksheets('Sheet5') or die "Can't find Sheet";
 
-    my $last_row = get_last_row($os);
     my $last_col = get_last_col($os);
+    my $last_row = get_last_row($os);
 
-    say 'last row = ', $last_row, ', last col = ', $last_col;
+    say 'last col = ', $last_col, ', last row = ', $last_row;
+    say 'XLRef = ', XLRef($last_col, $last_row);
 
     $ob->Close;
 

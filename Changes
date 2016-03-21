@@ -1,5 +1,12 @@
 Revision history for Win32-Scsv
 
+0.23 - 2016-03-21 20:47:12+01:00
+
+  [ENHANCEMENTS]
+
+  - add new function XLRef() to convert col/line coordinates into "A1"
+    style references, for example, XLRef(28, 22) = "AB22"
+
 0.22 - 2015-04-11 18:36:25+01:00
 
   [ENHANCEMENTS]
