@@ -1,5 +1,11 @@
 Revision history for Win32-Scsv
 
+0.24 - 2016-03-22 14:21:50+01:00
+
+  [ENHANCEMENTS]
+
+  - Do not import Excel Constants anymore
+
 0.23 - 2016-03-21 20:47:12+01:00
 
   [ENHANCEMENTS]

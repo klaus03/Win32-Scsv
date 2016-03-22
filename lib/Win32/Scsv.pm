@@ -4,11 +4,13 @@ use strict;
 use warnings;
 
 use Win32::OLE;
-use Win32::OLE::Const 'Microsoft Excel';
 use Win32::OLE::Variant;
 use Carp;
 use File::Spec;
 use File::Copy;
+
+use Win32::OLE::Const;
+my $Const_MSExcel = Win32::OLE::Const->Load('Microsoft Excel');
 
 require Exporter;
 our @ISA       = qw(Exporter);
@@ -16,10 +18,19 @@ our @EXPORT    = qw();
 our @EXPORT_OK = qw(
   xls_2_csv csv_2_xls xls_2_vbs slurp_vbs import_vbs_book empty_xls
   get_xver get_book get_last_row get_last_col tmp_book open_excel
-  get_lang XLRef
+  get_lang XLRef XLConst
 );
 
-my $OpenXMLWorkbook = 51; # xlOpenXMLWorkbook
+sub XLConst { $Const_MSExcel }
+
+my $CXL_OpenXML  = 51; # xlOpenXMLWorkbook
+my $CXL_Normal   = $Const_MSExcel->{'xlNormal'};
+my $CXL_PasteVal = $Const_MSExcel->{'xlPasteValues'};
+my $CXL_Csv      = $Const_MSExcel->{'xlCSV'};
+my $CXL_CalcMan  = $Const_MSExcel->{'xlCalculationManual'};
+my $CXL_Previous = $Const_MSExcel->{'xlPrevious'};
+my $CXL_ByRows   = $Const_MSExcel->{'xlByRows'};
+my $CXL_ByCols   = $Const_MSExcel->{'xlByColumns'};
 
 my $vtfalse = Variant(VT_BOOL, 0);
 my $vttrue  = Variant(VT_BOOL, 1);
@@ -159,11 +170,11 @@ sub xls_2_csv {
     my $csv_sheet = $csv_book->Worksheets(1) or croak "Can't find Sheet '1' in new Workbook";
 
     $xls_sheet->Cells->Copy;
-    $csv_sheet->Range('A1')->PasteSpecial(xlPasteValues);
+    $csv_sheet->Range('A1')->PasteSpecial($CXL_PasteVal);
     $csv_sheet->Activate;
     $csv_sheet->Columns($_->[0])->{NumberFormat} = $_->[1] for @col_fmt;
 
-    $csv_book->SaveAs($csv_abs, xlCSV);
+    $csv_book->SaveAs($csv_abs, $CXL_Csv);
 
     $csv_book->Close;
     $xls_book->Close;
@@ -188,7 +199,7 @@ sub csv_2_xls {
     my ($xls_stem, $xls_ext) = $xls_name =~ m{\A (.*) \. (xls x?) \z}xmsi ? ($1, lc($2)) :
       croak "xls_name '$xls_name' does not have an Excel extension of the right type (*.xls, *.xlsx)";
 
-    my $xls_format = $xls_ext eq 'xls' ? xlNormal : $OpenXMLWorkbook;
+    my $xls_format = $xls_ext eq 'xls' ? $CXL_Normal : $CXL_OpenXML;
 
     my ($tpl_stem, $tpl_ext) =
       $tpl_name eq ''                            ? ('', '')     :
@@ -248,7 +259,7 @@ sub csv_2_xls {
 
         $xls_sheet->Cells->ClearContents;
         $csv_sheet->Cells->Copy;
-        $xls_sheet->Range('A1')->PasteSpecial(xlPasteValues);
+        $xls_sheet->Range('A1')->PasteSpecial($CXL_PasteVal);
         $xls_sheet->Cells->EntireColumn->AutoFit;
 
         $csv_book->Close;
@@ -384,7 +395,7 @@ sub empty_xls {
     my ($xls_stem, $xls_ext) = $xls_name =~ m{\A (.*) \. (xls x?) \z}xmsi ? ($1, lc($2)) :
       croak "xls_name '$xls_name' does not have an Excel extension (*.xls, *.xlsx)";
 
-    my $xls_format = $xls_ext eq 'xls' ? xlNormal : $OpenXMLWorkbook;
+    my $xls_format = $xls_ext eq 'xls' ? $CXL_Normal : $CXL_OpenXML;
 
     my $xls_abs = File::Spec->rel2abs($xls_name); $xls_abs =~ s{/}'\\'xmsg;
 
@@ -434,8 +445,8 @@ sub get_excel {
     # know of to avoid this is to open a dummy workbook with a Workbook open event which sets
     # calculation to manual and then opens the real workbook.
 
-    $ole_global->{Calculation} = xlCalculationManual if $calc_manual;
-    $ole_global->{CalculateBeforeSave} = $vtfalse    if $calc_befsave;
+    $ole_global->{Calculation}         = $CXL_CalcMan  if $calc_manual;
+    $ole_global->{CalculateBeforeSave} = $vtfalse      if $calc_befsave;
 
     return $ole_global;
 }
@@ -462,21 +473,22 @@ sub get_book {
 sub get_last_row {
    $_[0]->UsedRange->Find({
      What            => '*',
-     SearchDirection => xlPrevious,
-     SearchOrder     => xlByRows,
+     SearchDirection => $CXL_Previous,
+     SearchOrder     => $CXL_ByRows,
    })->{Row};
 }
 
 sub get_last_col {
    $_[0]->UsedRange->Find({
      What            => '*',
-     SearchDirection => xlPrevious,
-     SearchOrder     => xlByColumns,
+     SearchDirection => $CXL_Previous,
+     SearchOrder     => $CXL_ByCols,
    })->{Column};
 }
 
 sub XLRef {
     my ($col, $row) = @_;
+    $row //= '';
 
     my $c2 = int(($col - 1) / 26);
     my $c1 = $col - $c2 * 26;
