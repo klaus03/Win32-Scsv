@@ -169,6 +169,7 @@ sub xls_2_csv {
     my $csv_book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
     my $csv_sheet = $csv_book->Worksheets(1) or croak "Can't find Sheet '1' in new Workbook";
 
+    $xls_sheet->Cells->AutoFilter; # This should, I hope, get rid of any AutoFilter...
     $xls_sheet->Cells->Copy;
     $csv_sheet->Range('A1')->PasteSpecial($CXL_PasteVal);
     $csv_sheet->Activate;

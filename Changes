@@ -1,5 +1,11 @@
 Revision history for Win32-Scsv
 
+0.25 - 2016-03-30 21:33:27+01:00
+
+  [ENHANCEMENTS]
+
+  - Disable AutoFilter when converting to Csv
+
 0.24 - 2016-03-22 14:21:50+01:00
 
   [ENHANCEMENTS]
