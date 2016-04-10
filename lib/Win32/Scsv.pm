@@ -491,10 +491,11 @@ sub XLRef {
     my ($col, $row) = @_;
     $row //= '';
 
-    my $c2 = int(($col - 1) / 26);
-    my $c1 = $col - $c2 * 26;
+    my $c3 = int(($col - 1 - 26) / (26 * 26)); my $rem = $col - $c3 * 26 * 26;
+    my $c2 = int(($rem - 1) / 26);
+    my $c1 = $rem - $c2 * 26;
 
-    return ($c2 == 0 ? '' : chr($c2 + 64)).chr($c1 + 64).$row;
+    return ($c3 == 0 ? '' : chr($c3 + 64)).($c2 == 0 ? '' : chr($c2 + 64)).chr($c1 + 64).$row;
 }
 
 1;
@@ -510,8 +511,11 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     use Win32::Scsv qw(
       xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver
       open_xls_book open_xls_sheet get_last_row get_last_col open_excel
-      XLRef
+      XLRef XLConst
     );
+
+    my $CN = XLConst();
+    say 'xlNormal = ', $CN->{'xlNormal'};
 
     my ($ver, $product) = get_xver;
 
