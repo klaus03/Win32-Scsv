@@ -1,5 +1,11 @@
 Revision history for Win32-Scsv
 
+0.27 - 2016-04-11 20:51:30+01:00
+
+  [ENHANCEMENTS]
+
+  - Force xls_abs to be RW -- i.e. remove the RO flag, if any...
+
 0.26 - 2016-04-10 18:07:54+01:00
 
   [ENHANCEMENTS]

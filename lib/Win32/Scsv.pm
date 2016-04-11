@@ -8,6 +8,7 @@ use Win32::OLE::Variant;
 use Carp;
 use File::Spec;
 use File::Copy;
+use Win32::File qw();
 
 use Win32::OLE::Const;
 my $Const_MSExcel = Win32::OLE::Const->Load('Microsoft Excel');
@@ -244,6 +245,23 @@ sub csv_2_xls {
 
     unless ($tpl_abs eq '' or -f $tpl_abs) {
         croak "tpl_abs '$tpl_abs' not found";
+    }
+
+    # Force "$xls_abs" to be RW -- i.e. remove the RO flag, if any...
+    # ***************************************************************
+
+    {
+        my $aflag;
+
+        unless (Win32::File::GetAttributes($xls_abs, $aflag)) {
+            croak "Can't get attributes from '$xls_abs'";
+        }
+
+        if ($aflag & Win32::File::READONLY()) {
+            unless (Win32::File::SetAttributes($xls_abs, ($aflag & ~Win32::File::READONLY()))) {
+                croak "Can't set attribute ('RW') for '$xls_abs'";
+            }
+        }
     }
 
     my $ole_excel = get_excel() or croak "Can't start Excel (new)";
