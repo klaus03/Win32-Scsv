@@ -1,5 +1,12 @@
 Revision history for Win32-Scsv
 
+0.28 - 2016-06-12T13:03:27+01:00
+
+  [BUG FIX]
+
+  - methods get_last_row() and get_last_col() should return zero for an empty
+    Excel sheet.
+
 0.27 - 2016-04-11 20:51:30+01:00
 
   [ENHANCEMENTS]

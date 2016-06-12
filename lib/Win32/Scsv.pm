@@ -490,19 +490,23 @@ sub get_book {
 }
 
 sub get_last_row {
-   $_[0]->UsedRange->Find({
+   my $proxy = $_[0]->UsedRange->Find({
      What            => '*',
      SearchDirection => $CXL_Previous,
      SearchOrder     => $CXL_ByRows,
-   })->{Row};
+   });
+
+   $proxy ? $proxy->{'Row'} : 0;
 }
 
 sub get_last_col {
-   $_[0]->UsedRange->Find({
+   my $proxy = $_[0]->UsedRange->Find({
      What            => '*',
      SearchDirection => $CXL_Previous,
      SearchOrder     => $CXL_ByCols,
-   })->{Column};
+   });
+
+   $proxy ? $proxy->{'Column'} : 0;
 }
 
 sub XLRef {
@@ -562,8 +566,8 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     my $ob = get_book('Test01.xls');
     my $os = $ob->Worksheets('Sheet5') or die "Can't find Sheet";
 
-    my $last_col = get_last_col($os);
-    my $last_row = get_last_row($os);
+    my $last_col = get_last_col($os); # returns zero for an empty sheet...
+    my $last_row = get_last_row($os); # returns zero for an empty sheet...
 
     say 'last col = ', $last_col, ', last row = ', $last_row;
     say 'XLRef = ', XLRef($last_col, $last_row);
