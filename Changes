@@ -1,5 +1,14 @@
 Revision history for Win32-Scsv
 
+0.29 - 2016-10-01T18:16:30+01:00
+
+  [BUG FIX]
+
+  - We have problems with Excel.exe staying open in task manager, it is
+    not garbage collected after the end of the program.
+    Therefore, we get rid of the get_excel() function and we allocate
+    one single object $ole_global at the beginning.
+
 0.28 - 2016-06-12T13:03:27+01:00
 
   [BUG FIX]
