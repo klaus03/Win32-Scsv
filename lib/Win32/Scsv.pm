@@ -11,7 +11,7 @@ use File::Copy;
 use Win32::File qw();
 
 use Win32::OLE::Const;
-my $Const_MSExcel = Win32::OLE::Const->Load('Microsoft Excel');
+my $Const_MSExcel;
 
 require Exporter;
 our @ISA       = qw(Exporter);
@@ -19,26 +19,34 @@ our @EXPORT    = qw();
 our @EXPORT_OK = qw(
   xls_2_csv csv_2_xls xls_2_vbs slurp_vbs import_vbs_book empty_xls
   get_xver get_book get_last_row get_last_col tmp_book open_excel
-  get_lang XLRef XLConst
+  get_lang XLRef XLConst ftranslate get_excel set_style_R1C1 restore_style
 );
 
-sub XLConst { $Const_MSExcel }
+sub XLConst {
+    $Const_MSExcel = Win32::OLE::Const->Load('Microsoft Excel') unless $Const_MSExcel;
 
-my $CXL_OpenXML  = 51; # xlOpenXMLWorkbook
-my $CXL_Normal   = $Const_MSExcel->{'xlNormal'};
-my $CXL_PasteVal = $Const_MSExcel->{'xlPasteValues'};
-my $CXL_Csv      = $Const_MSExcel->{'xlCSV'};
-my $CXL_CalcMan  = $Const_MSExcel->{'xlCalculationManual'};
-my $CXL_Previous = $Const_MSExcel->{'xlPrevious'};
-my $CXL_ByRows   = $Const_MSExcel->{'xlByRows'};
-my $CXL_ByCols   = $Const_MSExcel->{'xlByColumns'};
+    return $Const_MSExcel;
+}
+
+my $CXL_OpenXML  =    51; # xlOpenXMLWorkbook
+my $CXL_Normal   = -4143; # xlNormal
+my $CXL_PasteVal = -4163; # xlPasteValues
+my $CXL_Csv      =     6; # xlCSV
+my $CXL_CalcMan  = -4135; # xlCalculationManual
+my $CXL_Previous =     2; # xlPrevious
+my $CXL_ByRows   =     1; # xlByRows
+my $CXL_ByCols   =     2; # xlByColumns
+my $CXL_R1C1     = -4150; # xlR1C1
 
 my $vtfalse = Variant(VT_BOOL, 0);
 my $vttrue  = Variant(VT_BOOL, 1);
 
 my $ole_global;
-
 my $excel_exe;
+my $lang_global;
+my $ref_style;
+my $calc_manual  = 0;
+my $calc_befsave = 0;
 
 for my $office ('', '11', '12', '14', '15') {
     for my $x86 ('', ' (x86)') {
@@ -48,9 +56,6 @@ for my $office ('', '11', '12', '14', '15') {
         $excel_exe = $Rn if -f $Rn;
     }
 }
-
-my $calc_manual  = 0;
-my $calc_befsave = 0;
 
 sub set_calc_manual  { $calc_manual  = $_[0] }
 sub set_calc_befsave { $calc_befsave = $_[0] }
@@ -115,23 +120,130 @@ sub get_xver {
     return $ver;
 }
 
+my %FDef = (
+  'SUM'   => { DE => 'SUMME',     FR => 'SOMME'    },
+  'SUMIF' => { DE => 'SUMMEWENN', FR => 'SOMME.SI' },
+);
+
 sub get_lang {
+    return $lang_global if defined $lang_global;
+
     my $ole_excel = get_excel()            or croak "Can't start Excel";
     my $book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
     my $sheet = $book->Worksheets(1)       or croak "Can't find Sheet '1' in new Workbook";
 
-    $sheet->Cells(1, 1)->{'Formula'} = '=SUM(1)';
-    $sheet->Cells(1, 2)->{'Formula'} = '=SUMME(1)';
-    $sheet->Cells(1, 3)->{'Formula'} = '=SOMME(1)';
+    my $F_EN = 'SUM';
+    my $F_DE = $FDef{$F_EN}{'DE'} // croak "Can't find language equivalent in 'DE' for function '$F_EN'";
+    my $F_FR = $FDef{$F_EN}{'FR'} // croak "Can't find language equivalent in 'FR' for function '$F_EN'";
 
-    my $lang =
+    $sheet->Cells(1, 1)->{'Formula'} = "=$F_EN(1)";
+    $sheet->Cells(1, 2)->{'Formula'} = "=$F_DE(1)";
+    $sheet->Cells(1, 3)->{'Formula'} = "=$F_FR(1)";
+
+    my $lg =
       $sheet->Cells(1, 1)->{'Value'} eq '1' ? 'EN' :
       $sheet->Cells(1, 2)->{'Value'} eq '1' ? 'DE' :
-      $sheet->Cells(1, 3)->{'Value'} eq '1' ? 'FR' : '??';
+      $sheet->Cells(1, 3)->{'Value'} eq '1' ? 'FR' : croak "Can't decide language between ('$F_EN', '$F_DE' or '$F_FR')";
 
     $book->Close;
 
-    return $lang;
+    $lang_global = $lg;
+
+    return $lang_global;
+}
+
+# Comment by Klaus Eichner, 02-Oct-2016:
+# **************************************
+#
+# I have added 3 new functions set_style_R1C1(), restore_style() and ftranslate().
+#
+# Why, you might ask...
+#
+# ...because I had big problems with my German version of Excel crashing when using
+# a non-trivial formula with Perl / Win32::OLE...
+#
+# ...it turned out that the default references (Style "A1")
+# was too much to handle for my German Excel. In order for Excel not to crash,
+# one better switches to the relative style ("R[-1]C[2]")
+#
+# Here is the StackOverflow article that got me on the right track:
+#
+# http://stackoverflow.com/questions/1674987/how-do-i-set-excel-formulas-with-win32ole#1675036
+#
+# >> Without the quotes I get an errormessage: Win32::OLE(0.1709) error 0x80020009:
+# >> "Ausnahmefehler aufgetreten" in PROPERTYPUT "FormulaR1C1" at
+# >> C:\Dokumente und Einstellungen\pp\Eigene Dateien\excel.pl line 113
+# >> Just to check, you now have... $sheet->Range( 'G4' )->{FormulaR1C1} = '=SUMME(R[-3]C:R[-1]C)';
+# >> @ Joel : Yes. Update: considering Joel's commend, neither of the two formula works.
+# >> With the help of the perl-community.de I have now a solution: I have to set
+# >> $excel->{ReferenceStyle} = $xl->{xlR1C1};
+# >> and use Z1S1 instead of R1C1
+# >> =SUMME(Z(-2)S:Z(-1)S)
+# >> But it looks like that in the German version I have to choose between the A1 and the Z1S1 (R1C1) notation.
+# >> Sounds like this was your problem all along - strange.
+
+sub set_style_R1C1 {
+    $ref_style = $ole_global->{ReferenceStyle};
+    $ole_global->{ReferenceStyle} = $CXL_R1C1;
+}
+
+sub restore_style {
+    $ole_global->{ReferenceStyle} = $ref_style;
+}
+
+sub ftranslate {
+    unless (defined $lang_global) {
+        croak "lang is not defined in get_frm";
+    }
+
+    my @result;
+
+    for (@_) {
+        my $t2;
+
+        if (m{\A = (.*) \z}xms) {
+            my $func_gen = uc($1);
+
+            if ($lang_global eq 'EN') {
+                $t2 = $func_gen;
+            }
+            else {
+                my $item = $FDef{$func_gen} // croak "Can't find function '$func_gen'";
+                $t2 = $item->{$lang_global} // croak "Can't find function '$func_gen', language '$lang_global'";
+            }
+        }
+        elsif (m{\A < ([^>]*) > \z}xms) {
+            my $adr_gen = uc($1);
+
+            if ($lang_global eq 'EN') {
+                $t2 = $adr_gen;
+            }
+            elsif ($lang_global eq 'DE') {
+                $t2 = $adr_gen =~ s{R}'Z'xmsgr =~ s{C}'S'xmsgr =~ s{\[}'('xmsgr =~ s{\]}')'xmsgr;
+            }
+            elsif ($lang_global eq 'FR') {
+                $t2 = $adr_gen =~ s{R}'Z'xmsgr =~ s{C}'S'xmsgr =~ s{\[}'('xmsgr =~ s{\]}')'xmsgr;
+            }
+            else {
+                croak "Invalid language '$lang_global'";
+            }
+        }
+        elsif ($_ eq ',') {
+            if ($lang_global eq 'EN') {
+                $t2 = ',';
+            }
+            else {
+                $t2 = ';';
+            }
+        }
+        else {
+            croak "Can't parse parameter '$_'";
+        }
+
+        push @result, $t2;
+    }
+
+    return @result;
 }
 
 sub xls_2_csv {
