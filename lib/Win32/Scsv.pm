@@ -181,6 +181,16 @@ sub get_lang {
 # >> =SUMME(Z(-2)S:Z(-1)S)
 # >> But it looks like that in the German version I have to choose between the A1 and the Z1S1 (R1C1) notation.
 # >> Sounds like this was your problem all along - strange.
+#
+# ...as for the French version of Excel, the following sums it up quite nicely:
+#
+# http://www.office-archive.com/4-excel/0262612dc88a206e.htm
+#
+# >> all our french-VBA code was translated to english-VBA.
+# >> If you really want to stick to L1C1 references, beware of:
+# >> "[" and "]" => "(" and ")"
+# >> ";" => ","
+# >> and of course "L" => "R"
 
 sub set_style_R1C1 {
     $ref_style = $ole_global->{ReferenceStyle};
@@ -222,7 +232,7 @@ sub ftranslate {
                 $t2 = $adr_gen =~ s{R}'Z'xmsgr =~ s{C}'S'xmsgr =~ s{\[}'('xmsgr =~ s{\]}')'xmsgr;
             }
             elsif ($lang_global eq 'FR') {
-                $t2 = $adr_gen =~ s{R}'Z'xmsgr =~ s{C}'S'xmsgr =~ s{\[}'('xmsgr =~ s{\]}')'xmsgr;
+                $t2 = $adr_gen =~ s{R}'L'xmsgr                 =~ s{\[}'('xmsgr =~ s{\]}')'xmsgr;
             }
             else {
                 croak "Invalid language '$lang_global'";
@@ -232,8 +242,14 @@ sub ftranslate {
             if ($lang_global eq 'EN') {
                 $t2 = ',';
             }
-            else {
+            elsif ($lang_global eq 'DE') {
                 $t2 = ';';
+            }
+            elsif ($lang_global eq 'FR') {
+                $t2 = ';';
+            }
+            else {
+                croak "Invalid language '$lang_global'";
             }
         }
         else {

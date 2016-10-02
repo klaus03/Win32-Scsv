@@ -1,5 +1,11 @@
 Revision history for Win32-Scsv
 
+0.32 - 2016-10-01 20:54:13+01:00
+
+  [ENHANCEMENTS]
+
+  - Implements the French language style L1C1.
+
 0.31 - 2016-10-01 16:30:44+01:00
 
   [ENHANCEMENTS]
