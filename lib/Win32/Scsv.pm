@@ -36,15 +36,7 @@ my $CXL_ByCols   = $Const_MSExcel->{'xlByColumns'};
 my $vtfalse = Variant(VT_BOOL, 0);
 my $vttrue  = Variant(VT_BOOL, 1);
 
-my $ole_global = Win32::OLE->new('Excel.Application', sub {$_[0]->Quit;});
-$ole_global->{DisplayAlerts} = 0;
-#~ $ole_global->{Visible} = 1;
-#~ $ole_global->{WindowState} = 1; # xlMinimized
-
-END {
-    $ole_global->Quit();
-    undef $ole_global;
-}
+my $ole_global;
 
 my $excel_exe;
 
@@ -57,33 +49,11 @@ for my $office ('', '11', '12', '14', '15') {
     }
 }
 
-sub set_calc_manual  {
-    # http://www.decisionmodels.com/calcsecretsh.htm
-    # ----------------------------------------------
-    #
-    # If you need to override the way Excel initially sets the calculation mode you can set it yourself
-    # by creating a module in ThisWorkbook (doubleclick ThisWorkbook in the Project Explorer window in
-    # the VBE), and adding this code. This example sets calculation to Manual.
-    #
-    # Private Sub Workbook_Open()
-    #    Application.Calculation = xlCalculationManual
-    # End Sub
-    #
-    # Unfortunately if calculation is set to Automatic when a workbook containing this code is opened,
-    # Excel will start the recalculation process before the Open event is executed. The only way I
-    # know of to avoid this is to open a dummy workbook with a Workbook open event which sets
-    # calculation to manual and then opens the real workbook.
+my $calc_manual  = 0;
+my $calc_befsave = 0;
 
-    my $dat = $_[0] ? $CXL_CalcMan : $CXL_CalcMan;
-
-    $ole_global->{Calculation} = $dat;
-}
-
-sub set_calc_befsave {
-    my $dat = $_[0] ? $vttrue : $vtfalse;
-
-    $ole_global->{CalculateBeforeSave} = $dat;
-}
+sub set_calc_manual  { $calc_manual  = $_[0] }
+sub set_calc_befsave { $calc_befsave = $_[0] }
 
 sub open_excel {
     unless (defined $excel_exe) {
@@ -128,7 +98,9 @@ sub open_excel {
 # http://www.mrexcel.com/articles/copy-vba-module.php
 
 sub get_xver {
-    my $ver = $ole_global->Version;
+    my $ole_excel = get_excel() or croak "Can't start Excel";
+
+    my $ver = $ole_excel->Version;
     my $prd =
       $ver eq '15.0' ? '2013' :
       $ver eq '14.0' ? '2010' :
@@ -144,8 +116,9 @@ sub get_xver {
 }
 
 sub get_lang {
-    my $book  = $ole_global->Workbooks->Add or croak "Can't Workbooks->Add";
-    my $sheet = $book->Worksheets(1)        or croak "Can't find Sheet '1' in new Workbook";
+    my $ole_excel = get_excel()            or croak "Can't start Excel";
+    my $book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
+    my $sheet = $book->Worksheets(1)       or croak "Can't find Sheet '1' in new Workbook";
 
     $sheet->Cells(1, 1)->{'Formula'} = '=SUM(1)';
     $sheet->Cells(1, 2)->{'Formula'} = '=SUMME(1)';
@@ -184,7 +157,9 @@ sub xls_2_csv {
         unlink $csv_abs or croak "Can't unlink csv_abs '$csv_abs' because $!";
     }
 
-    my $xls_book = $ole_global->Workbooks->Open($xls_abs)
+    my $ole_excel = get_excel() or croak "Can't start Excel";
+
+    my $xls_book = $ole_excel->Workbooks->Open($xls_abs)
        or croak "Can't Workbooks->Open xls_abs '$xls_abs'";
 
     my $xls_sheet = $xls_book->Worksheets($xls_snumber)
@@ -192,7 +167,7 @@ sub xls_2_csv {
 
     $xls_sheet->{'Visible'} = $vttrue;
 
-    my $csv_book  = $ole_global->Workbooks->Add or croak "Can't Workbooks->Add";
+    my $csv_book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
     my $csv_sheet = $csv_book->Worksheets(1) or croak "Can't find Sheet '1' in new Workbook";
 
     $xls_sheet->Cells->AutoFilter; # This should, I hope, get rid of any AutoFilter...
@@ -247,7 +222,8 @@ sub csv_2_xls {
             unlink $xls_abs or croak "Can't unlink '$xls_abs' because $!";
         }
 
-        my $tmp_book = $ole_global->Workbooks->Add or croak "Can't Workbooks->Add xls_abs '$xls_abs' (tmp)";
+        my $tmp_ole = get_excel() or croak "Can't start Excel (tmp)";
+        my $tmp_book = $tmp_ole->Workbooks->Add or croak "Can't Workbooks->Add xls_abs '$xls_abs' (tmp)";
         $tmp_book->SaveAs($xls_abs, $xls_format);
         $tmp_book->Close;
     }
@@ -288,7 +264,8 @@ sub csv_2_xls {
         }
     }
 
-    my $xls_book  = $ole_global->Workbooks->Open($xls_abs) or croak "Can't Workbooks->Open xls_abs '$xls_abs'";
+    my $ole_excel = get_excel() or croak "Can't start Excel (new)";
+    my $xls_book  = $ole_excel->Workbooks->Open($xls_abs) or croak "Can't Workbooks->Open xls_abs '$xls_abs'";
     my $xls_sheet = $xls_book->Worksheets($xls_snumber) or croak "Can't find Sheet '$xls_snumber' in xls_abs '$xls_abs'";
 
     $xls_sheet->Activate; # "...->Activate" is necessary in order to allow "...Range('A1')->Select" later to be effective
@@ -296,7 +273,7 @@ sub csv_2_xls {
     $xls_sheet->Columns($_->[0])->{NumberFormat} = $_->[1] for @col_fmt;
 
     unless ($csv_abs eq '') {
-        my $csv_book  = $ole_global->Workbooks->Open($csv_abs) or croak "Can't Workbooks->Open csv_abs '$csv_abs'";
+        my $csv_book  = $ole_excel->Workbooks->Open($csv_abs) or croak "Can't Workbooks->Open csv_abs '$csv_abs'";
         my $csv_sheet = $csv_book->Worksheets(1) or croak "Can't find Sheet #1 in csv_abs '$csv_abs'";
 
         $xls_sheet->Cells->ClearContents;
@@ -353,11 +330,11 @@ sub csv_2_xls {
     # could in fact be a value that differs from the original value "1". (this is reflected in the two variables
     # $pos_row/$pos_col).
 
-    $ole_global->ActiveWindow->{ScrollColumn} = 1;
-    $ole_global->ActiveWindow->{ScrollRow}    = 1;
+    $ole_excel->ActiveWindow->{ScrollColumn} = 1;
+    $ole_excel->ActiveWindow->{ScrollRow}    = 1;
 
-    my $pos_row = $ole_global->ActiveWindow->{ScrollRow};
-    my $pos_col = $ole_global->ActiveWindow->{ScrollColumn};
+    my $pos_row = $ole_excel->ActiveWindow->{ScrollRow};
+    my $pos_col = $ole_excel->ActiveWindow->{ScrollColumn};
 
     $xls_sheet->Cells($pos_row, $pos_col)->Select;
 
@@ -441,7 +418,8 @@ sub empty_xls {
 
     my $xls_abs = File::Spec->rel2abs($xls_name); $xls_abs =~ s{/}'\\'xmsg;
 
-    my $xls_book  = $ole_global->Workbooks->Add or croak "Can't Workbooks->Add xls_abs '$xls_abs'";
+    my $ole_excel = get_excel() or croak "Can't start Excel";
+    my $xls_book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add xls_abs '$xls_abs'";
     my $xls_sheet = $xls_book->Worksheets(1) or croak "Can't find Sheet '1' in xls_abs '$xls_abs'";
 
     $xls_book->SaveAs($xls_abs, $xls_format);
@@ -449,9 +427,47 @@ sub empty_xls {
 }
 
 sub tmp_book {
-    my $xls_book  = $ole_global->Workbooks->Add or croak "Can't Workbooks->Add";
+    my $ole_excel = get_excel() or croak "Can't start Excel";
+    my $xls_book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
 
     return $xls_book;
+}
+
+sub get_excel {
+    return $ole_global if $ole_global;
+
+    # use existing instance if Excel is already running
+    my $ol1 = eval { Win32::OLE->GetActiveObject('Excel.Application') };
+    return if $@;
+
+    unless (defined $ol1) {
+        $ol1 = Win32::OLE->new('Excel.Application', sub {$_[0]->Quit;})
+          or return;
+    }
+
+    $ole_global = $ol1;
+    $ole_global->{DisplayAlerts} = 0;
+
+    # http://www.decisionmodels.com/calcsecretsh.htm
+    # ----------------------------------------------
+    #
+    # If you need to override the way Excel initially sets the calculation mode you can set it yourself
+    # by creating a module in ThisWorkbook (doubleclick ThisWorkbook in the Project Explorer window in
+    # the VBE), and adding this code. This example sets calculation to Manual.
+    #
+    # Private Sub Workbook_Open()
+    #    Application.Calculation = xlCalculationManual
+    # End Sub
+    #
+    # Unfortunately if calculation is set to Automatic when a workbook containing this code is opened,
+    # Excel will start the recalculation process before the Open event is executed. The only way I
+    # know of to avoid this is to open a dummy workbook with a Workbook open event which sets
+    # calculation to manual and then opens the real workbook.
+
+    $ole_global->{Calculation}         = $CXL_CalcMan  if $calc_manual;
+    $ole_global->{CalculateBeforeSave} = $vtfalse      if $calc_befsave;
+
+    return $ole_global;
 }
 
 sub get_book {
@@ -467,7 +483,8 @@ sub get_book {
 
     my $prm_book_abs = File::Spec->rel2abs($prm_book_name); $prm_book_abs =~ s{/}'\\'xmsg;
 
-    my $obj_book = $ole_global->Workbooks->Open($prm_book_abs) or croak "Can't Workbooks->Open xls_abs '$prm_book_abs'";
+    my $obj_excel = get_excel()                                or croak "Can't start Excel";
+    my $obj_book  = $obj_excel->Workbooks->Open($prm_book_abs) or croak "Can't Workbooks->Open xls_abs '$prm_book_abs'";
 
     return $obj_book;
 }

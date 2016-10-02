@@ -1,5 +1,12 @@
 Revision history for Win32-Scsv
 
+0.30 - 2016-10-02T13:01:45+01:00
+
+  [REVERT]
+
+  - The previous revision was a mistake -- therefore I am reverting back to
+    the revision before that, i.e. 0.28
+
 0.29 - 2016-10-01T18:16:30+01:00
 
   [BUG FIX]
