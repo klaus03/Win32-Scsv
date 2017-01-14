@@ -8,6 +8,7 @@ use Win32::OLE::Variant;
 use Carp;
 use File::Spec;
 use File::Copy;
+use File::Slurp;
 use Win32::File qw();
 
 use Win32::OLE::Const;
@@ -17,7 +18,7 @@ require Exporter;
 our @ISA       = qw(Exporter);
 our @EXPORT    = qw();
 our @EXPORT_OK = qw(
-  xls_2_csv csv_2_xls xls_2_vbs slurp_vbs import_vbs_book empty_xls
+  xls_2_csv xls_all_csv csv_2_xls xls_2_vbs slurp_vbs import_vbs_book empty_xls
   get_xver get_book get_last_row get_last_col tmp_book open_excel
   get_lang XLRef XLConst ftranslate get_excel set_style_R1C1 restore_style
 );
@@ -31,6 +32,7 @@ sub XLConst {
 my $CXL_OpenXML  =    51; # xlOpenXMLWorkbook
 my $CXL_Normal   = -4143; # xlNormal
 my $CXL_PasteVal = -4163; # xlPasteValues
+my $CXL_PasteAll = -4104; # xlPasteAll
 my $CXL_Csv      =     6; # xlCSV
 my $CXL_CalcMan  = -4135; # xlCalculationManual
 my $CXL_Previous =     2; # xlPrevious
@@ -308,6 +310,74 @@ sub xls_2_csv {
 
     $csv_book->Close;
     $xls_book->Close;
+}
+
+sub xls_all_csv {
+    my ($xls_name, $csv_name) = @_;
+
+    unless ($xls_name =~ m{\A (.*) \. (xls x?) \z}xmsi) {
+        croak "xls_name '$xls_name' does not have an Excel extension (*.xls, *.xlsx)";
+    }
+
+    my ($xls_stem, $xls_ext) = ($1, lc($2));
+
+    unless (-f $xls_name) {
+        croak "xls_name '$xls_name' not found";
+    }
+
+    my $xls_abs = File::Spec->rel2abs($xls_name); $xls_abs =~ s{/}'\\'xmsg;
+    my $csv_abs = File::Spec->rel2abs($csv_name); $csv_abs =~ s{/}'\\'xmsg;
+
+    my ($csv_dir, $csv_leaf) = $csv_abs =~ m{\A (.+) [\\/] ([^\\/]+) \.csv \z}xmsi ? ($1, $2) : croak "Can't parse (dir/*.csv) from csv_abs = '$csv_abs'";
+    my $clen = length($csv_leaf);
+
+    # remove all existing *.CSV files
+
+    for (sort(read_dir($csv_dir))) {
+        next unless m{\.csv \z}xmsi;
+        next unless length($_) >= $clen;
+
+        my $cfull = $csv_dir.'\\'.$_;
+
+        if (lc(substr($_, 0, $clen)) eq lc($csv_leaf)) {
+            unlink $cfull or croak "Can't unlink csv_leaf '$cfull' because $!";
+        }
+    }
+
+    my $tfull = $csv_dir.'\\'.$csv_leaf.'_'.sprintf('%03d', 0).'.csv';
+
+    open my $ofh, '>', $tfull or croak "Can't open > '$tfull' because $!";
+
+    say {$ofh} 'SNo;Sheet';
+
+    my $ole_excel = get_excel() or croak "Can't start Excel";
+
+    my $xls_book = $ole_excel->Workbooks->Open($xls_abs)
+       or croak "Can't Workbooks->Open xls_abs '$xls_abs'";
+
+    for my $xls_snumber (1..$xls_book->Sheets->Count) {
+        my $xls_sheet = $xls_book->Worksheets($xls_snumber)
+           or croak "Can't find Sheet '$xls_snumber' in xls_abs '$xls_abs'";
+
+        my $sfull = $csv_dir.'\\'.$csv_leaf.'_'.sprintf('%03d', $xls_snumber).'.csv';
+
+        printf {$ofh} "S%03d;[%s]\n", $xls_snumber, $xls_sheet->Name;
+
+        my $csv_book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
+        my $csv_sheet = $csv_book->Worksheets(1) or croak "Can't find Sheet '1' in new Workbook";
+
+        $xls_sheet->{'Visible'} = $vttrue;
+        $xls_sheet->Cells->AutoFilter; # This should, I hope, get rid of any AutoFilter...
+        $xls_sheet->Cells->Copy;
+
+        $csv_sheet->Range('A1')->PasteSpecial($CXL_PasteAll); # Paste all, i.e. values and formats...
+        $csv_book->SaveAs($sfull, $CXL_Csv);
+
+        $csv_book->Close;
+    }
+
+    $xls_book->Close;
+    close $ofh;
 }
 
 sub csv_2_xls {
