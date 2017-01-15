@@ -267,7 +267,13 @@ sub ftranslate {
 sub xls_2_csv {
     my ($xls_name, $xls_snumber) = $_[0] =~ m{\A ([^%]*) % ([^%]*) \z}xms ? ($1, $2) : ($_[0], 1);
     my $csv_name = $_[1];
-    my @col_fmt  = $_[2] && defined($_[2]{'fmt'})  ? @{$_[2]{'fmt'}} : ();
+    my @col_fmt  = $_[2] && defined($_[2]{'fmt'})  ? @{$_[2]{'fmt'}}  : ();
+    my $cpy_name = $_[2] && defined($_[2]{'cpy'})  ? lc($_[2]{'cpy'}) : 'val';
+
+    my $C_Special =
+      $cpy_name eq 'val' ? $CXL_PasteVal :
+      $cpy_name eq 'all' ? $CXL_PasteAll :
+      croak "Invalid parameter cpy => ('$cpy_name'), expected ('val' or 'all')";
 
     unless ($xls_name =~ m{\A (.*) \. (xls x?) \z}xmsi) {
         croak "xls_name '$xls_name' does not have an Excel extension (*.xls, *.xlsx)";
@@ -302,7 +308,7 @@ sub xls_2_csv {
 
     $xls_sheet->Cells->AutoFilter; # This should, I hope, get rid of any AutoFilter...
     $xls_sheet->Cells->Copy;
-    $csv_sheet->Range('A1')->PasteSpecial($CXL_PasteVal);
+    $csv_sheet->Range('A1')->PasteSpecial($C_Special); # $CXL_PasteVal or $CXL_PasteAll
     $csv_sheet->Activate;
     $csv_sheet->Columns($_->[0])->{NumberFormat} = $_->[1] for @col_fmt;
 
@@ -313,7 +319,15 @@ sub xls_2_csv {
 }
 
 sub xls_all_csv {
-    my ($xls_name, $csv_name) = @_;
+    my $xls_name = $_[0] =~ m{\A (.*) \. (xls x?) % \* \z}xmsi ? $1.'.'.lc($2) : croak "Can't parse /....xlsx?%*/ from '$_[0]'";
+    my $csv_name = $_[1] =~ m{\A (.*) _ \* \. (csv)    \z}xmsi ? $1.'.'.lc($2) : croak "Can't parse /..._*.csv/ from '$_[1]'";
+
+    my $cpy_name = $_[2] && defined($_[2]{'cpy'}) ? lc($_[2]{'cpy'}) : 'val';
+
+    my $C_Special =
+      $cpy_name eq 'val' ? $CXL_PasteVal :
+      $cpy_name eq 'all' ? $CXL_PasteAll :
+      croak "Invalid parameter cpy => ('$cpy_name'), expected ('val' or 'all')";
 
     unless ($xls_name =~ m{\A (.*) \. (xls x?) \z}xmsi) {
         croak "xls_name '$xls_name' does not have an Excel extension (*.xls, *.xlsx)";
@@ -329,19 +343,16 @@ sub xls_all_csv {
     my $csv_abs = File::Spec->rel2abs($csv_name); $csv_abs =~ s{/}'\\'xmsg;
 
     my ($csv_dir, $csv_leaf) = $csv_abs =~ m{\A (.+) [\\/] ([^\\/]+) \.csv \z}xmsi ? ($1, $2) : croak "Can't parse (dir/*.csv) from csv_abs = '$csv_abs'";
-    my $clen = length($csv_leaf);
 
     # remove all existing *.CSV files
 
     for (sort(read_dir($csv_dir))) {
-        next unless m{\.csv \z}xmsi;
-        next unless length($_) >= $clen;
-
         my $cfull = $csv_dir.'\\'.$_;
 
-        if (lc(substr($_, 0, $clen)) eq lc($csv_leaf)) {
-            unlink $cfull or croak "Can't unlink csv_leaf '$cfull' because $!";
-        }
+        next unless -f $cfull;
+        next unless m{\A \Q$csv_leaf\E _ \d+ \. csv \z}xmsi;
+
+        unlink $cfull or croak "Can't unlink csv_leaf '$cfull' because $!";
     }
 
     my $tfull = $csv_dir.'\\'.$csv_leaf.'_'.sprintf('%03d', 0).'.csv';
@@ -370,7 +381,7 @@ sub xls_all_csv {
         $xls_sheet->Cells->AutoFilter; # This should, I hope, get rid of any AutoFilter...
         $xls_sheet->Cells->Copy;
 
-        $csv_sheet->Range('A1')->PasteSpecial($CXL_PasteAll); # Paste all, i.e. values and formats...
+        $csv_sheet->Range('A1')->PasteSpecial($C_Special); # $CXL_PasteVal or $CXL_PasteAll
         $csv_book->SaveAs($sfull, $CXL_Csv);
 
         $csv_book->Close;
@@ -729,9 +740,9 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
 =head1 SYNOPSIS
 
     use Win32::Scsv qw(
-      xls_2_csv csv_2_xls xls_2_vbs slurp_vbs empty_xls get_xver
-      open_xls_book open_xls_sheet get_last_row get_last_col open_excel
-      XLRef XLConst
+      xls_2_csv xls_all_csv csv_2_xls xls_2_vbs slurp_vbs import_vbs_book empty_xls
+      get_xver get_book get_last_row get_last_col tmp_book open_excel
+      get_lang XLRef XLConst ftranslate get_excel set_style_R1C1 restore_style
     );
 
     my $CN = XLConst();
@@ -746,6 +757,12 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     empty_xls('Test2.xls');
 
     say $_->{'NAME'}, ' => ', $_->{'CODE'} for @{slurp_vbs('Test3.xls')};
+
+    xls_2_csv('Abc.xls%Tab01' => 'data01.csv', { cpy => 'all' }); # copy values *AND* format...
+    xls_2_csv('Abc.xls%Tab02' => 'data02.csv', { cpy => 'val' }); # copy only values...
+    xls_2_csv('Abc.xls%Tab03' => 'data03.csv'); # ...same as { cpy => 'val' }, which is the default...
+
+    xls_all_csv('Abc.xls%*' => 'result_*.csv', { cpy => 'all' }); # copy all sheets in one operation...
 
     csv_2_xls('dummy.csv' => 'New.xlsx%Tab9', {
       'tpl'  => 'Template.xls',

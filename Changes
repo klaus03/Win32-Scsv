@@ -1,5 +1,11 @@
 Revision history for Win32-Scsv
 
+0.34 - 2017-01-15 14:55:54+01:00
+
+  [ENHANCEMENTS]
+
+  - Add flexible option { 'cpy' => 'all' / 'val' } to xls_2_csv()
+
 0.33 - 2017-01-14 14:27:22+01:00
 
   [ENHANCEMENTS]
