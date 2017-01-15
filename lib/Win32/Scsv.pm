@@ -319,9 +319,8 @@ sub xls_2_csv {
 }
 
 sub xls_all_csv {
-    my $xls_name = $_[0] =~ m{\A (.*) \. (xls x?) % \* \z}xmsi ? $1.'.'.lc($2) : croak "Can't parse /....xlsx?%*/ from '$_[0]'";
-    my $csv_name = $_[1] =~ m{\A (.*) _ \* \. (csv)    \z}xmsi ? $1.'.'.lc($2) : croak "Can't parse /..._*.csv/ from '$_[1]'";
-
+    my $xls_name = $_[0];
+    my $csv_name = $_[1];
     my $cpy_name = $_[2] && defined($_[2]{'cpy'}) ? lc($_[2]{'cpy'}) : 'val';
 
     my $C_Special =
@@ -342,7 +341,7 @@ sub xls_all_csv {
     my $xls_abs = File::Spec->rel2abs($xls_name); $xls_abs =~ s{/}'\\'xmsg;
     my $csv_abs = File::Spec->rel2abs($csv_name); $csv_abs =~ s{/}'\\'xmsg;
 
-    my ($csv_dir, $csv_leaf) = $csv_abs =~ m{\A (.+) [\\/] ([^\\/]+) \.csv \z}xmsi ? ($1, $2) : croak "Can't parse (dir/*.csv) from csv_abs = '$csv_abs'";
+    my ($csv_dir, $csv_leaf) = $csv_abs =~ m{\A (.+) [\\/] ([^\\/]+) _ \* \. csv \z}xmsi ? ($1, $2) : croak "Can't parse (dir/_*.csv) from csv_abs = '$csv_abs'";
 
     # remove all existing *.CSV files
 
@@ -762,7 +761,7 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     xls_2_csv('Abc.xls%Tab02' => 'data02.csv', { cpy => 'val' }); # copy only values...
     xls_2_csv('Abc.xls%Tab03' => 'data03.csv'); # ...same as { cpy => 'val' }, which is the default...
 
-    xls_all_csv('Abc.xls%*' => 'result_*.csv', { cpy => 'all' }); # copy all sheets in one operation...
+    xls_all_csv('Abc.xls' => 'result_*.csv', { cpy => 'all' }); # copy all sheets in one operation...
 
     csv_2_xls('dummy.csv' => 'New.xlsx%Tab9', {
       'tpl'  => 'Template.xls',
