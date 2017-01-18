@@ -1,5 +1,12 @@
 Revision history for Win32-Scsv
 
+0.36 - 2017-01-16 20:14:18+01:00
+
+  [CPANTS]
+
+  - Add minimum perl version using dzil plugin [MinimumPerlFast].
+  - Auto generate META.json  using dzil plugin [MetaJSON]
+
 0.35 - 2017-01-15 18:09:04+01:00
 
   [ENHANCEMENTS]
