@@ -39,6 +39,7 @@ my $CXL_Previous =     2; # xlPrevious
 my $CXL_ByRows   =     1; # xlByRows
 my $CXL_ByCols   =     2; # xlByColumns
 my $CXL_R1C1     = -4150; # xlR1C1
+my $CXL_Part     =     2; # xlPart
 
 my $vtfalse = Variant(VT_BOOL, 0);
 my $vttrue  = Variant(VT_BOOL, 1);
@@ -267,8 +268,10 @@ sub ftranslate {
 sub xls_2_csv {
     my ($xls_name, $xls_snumber) = $_[0] =~ m{\A ([^%]*) % ([^%]*) \z}xms ? ($1, $2) : ($_[0], 1);
     my $csv_name = $_[1];
-    my @col_fmt  = $_[2] && defined($_[2]{'fmt'})  ? @{$_[2]{'fmt'}}  : ();
-    my $cpy_name = $_[2] && defined($_[2]{'cpy'})  ? lc($_[2]{'cpy'}) : 'val';
+    my @col_fmt  = $_[2] && defined($_[2]{'fmt'}) ? @{$_[2]{'fmt'}}  : ();
+    my $cpy_name = $_[2] && defined($_[2]{'cpy'}) ? lc($_[2]{'cpy'}) : 'val';
+    my $rem_crlf = $_[2] && defined($_[2]{'rmc'}) ? $_[2]{'rmc'}     : 0;
+    my $set_calc = $_[2] && defined($_[2]{'clc'}) ? $_[2]{'clc'}     : 0;
 
     my $C_Special =
       $cpy_name eq 'val' ? $CXL_PasteVal :
@@ -303,12 +306,48 @@ sub xls_2_csv {
 
     $xls_sheet->{'Visible'} = $vttrue;
 
+    if ($set_calc) {
+        $xls_sheet->Calculate;
+    }
+
     my $csv_book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
     my $csv_sheet = $csv_book->Worksheets(1) or croak "Can't find Sheet '1' in new Workbook";
 
     $xls_sheet->Cells->AutoFilter; # This should, I hope, get rid of any AutoFilter...
     $xls_sheet->Cells->Copy;
     $csv_sheet->Range('A1')->PasteSpecial($C_Special); # $CXL_PasteVal or $CXL_PasteAll
+
+    if ($rem_crlf) {
+        # Cells.Replace What:="" & Chr(10) & "",
+        #   Replacement:="~", LookAt:=xlPart, SearchOrder _
+        #   :=xlByRows, MatchCase:=False
+        # *************************************************
+
+        $csv_sheet->Cells->Replace({
+          What            => "\x{09}", # Tab
+          Replacement     => '~!',
+          LookAt          => $CXL_Part,
+          SearchOrder     => $CXL_ByRows,
+          MatchCase       => $vtfalse,
+        });
+
+        $csv_sheet->Cells->Replace({
+          What            => "\x{0a}", # CR
+          Replacement     => '~*',
+          LookAt          => $CXL_Part,
+          SearchOrder     => $CXL_ByRows,
+          MatchCase       => $vtfalse,
+        });
+
+        $csv_sheet->Cells->Replace({
+          What            => "\x{0d}", # LF
+          Replacement     => '~+',
+          LookAt          => $CXL_Part,
+          SearchOrder     => $CXL_ByRows,
+          MatchCase       => $vtfalse,
+        });
+    }
+
     $csv_sheet->Activate;
     $csv_sheet->Columns($_->[0])->{NumberFormat} = $_->[1] for @col_fmt;
 
@@ -322,6 +361,8 @@ sub xls_all_csv {
     my $xls_name = $_[0];
     my $csv_name = $_[1];
     my $cpy_name = $_[2] && defined($_[2]{'cpy'}) ? lc($_[2]{'cpy'}) : 'val';
+    my $rem_crlf = $_[2] && defined($_[2]{'rmc'}) ? $_[2]{'rmc'}     : 0;
+    my $set_calc = $_[2] && defined($_[2]{'clc'}) ? $_[2]{'clc'}     : 0;
 
     my $C_Special =
       $cpy_name eq 'val' ? $CXL_PasteVal :
@@ -377,10 +418,47 @@ sub xls_all_csv {
         my $csv_sheet = $csv_book->Worksheets(1) or croak "Can't find Sheet '1' in new Workbook";
 
         $xls_sheet->{'Visible'} = $vttrue;
+
+        if ($set_calc) {
+            $xls_sheet->Calculate;
+        }
+
         $xls_sheet->Cells->AutoFilter; # This should, I hope, get rid of any AutoFilter...
         $xls_sheet->Cells->Copy;
 
         $csv_sheet->Range('A1')->PasteSpecial($C_Special); # $CXL_PasteVal or $CXL_PasteAll
+
+        if ($rem_crlf) {
+            # Cells.Replace What:="" & Chr(10) & "",
+            #   Replacement:="~", LookAt:=xlPart, SearchOrder _
+            #   :=xlByRows, MatchCase:=False
+            # *************************************************
+
+            $csv_sheet->Cells->Replace({
+              What            => "\x{09}", # Tab
+              Replacement     => '~!',
+              LookAt          => $CXL_Part,
+              SearchOrder     => $CXL_ByRows,
+              MatchCase       => $vtfalse,
+            });
+
+            $csv_sheet->Cells->Replace({
+              What            => "\x{0a}", # CR
+              Replacement     => '~*',
+              LookAt          => $CXL_Part,
+              SearchOrder     => $CXL_ByRows,
+              MatchCase       => $vtfalse,
+            });
+
+            $csv_sheet->Cells->Replace({
+              What            => "\x{0d}", # LF
+              Replacement     => '~+',
+              LookAt          => $CXL_Part,
+              SearchOrder     => $CXL_ByRows,
+              MatchCase       => $vtfalse,
+            });
+        }
+
         $csv_book->SaveAs($sfull, $CXL_Csv);
 
         $csv_book->Close;
@@ -760,6 +838,9 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     xls_2_csv('Abc.xls%Tab01' => 'data01.csv', { cpy => 'all' }); # copy values *AND* format...
     xls_2_csv('Abc.xls%Tab02' => 'data02.csv', { cpy => 'val' }); # copy only values...
     xls_2_csv('Abc.xls%Tab03' => 'data03.csv'); # ...same as { cpy => 'val' }, which is the default...
+
+    xls_2_csv('Abc.xls%Tab04' => 'data04.csv', { rmc => 1 }); # remove CRLF from all cells...
+    xls_2_csv('Abc.xls%Tab05' => 'data05.csv', { clc => 1 }); # force recalculation...
 
     xls_all_csv('Abc.xls' => 'result_*.csv', { cpy => 'all' }); # copy all sheets in one operation...
 
