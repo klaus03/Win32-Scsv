@@ -399,7 +399,7 @@ sub xls_all_csv {
 
     open my $ofh, '>', $tfull or croak "Can't open > '$tfull' because $!";
 
-    say {$ofh} 'SNo;Sheet';
+    print {$ofh} "SNo;Sheet\n";
 
     my $ole_excel = get_excel() or croak "Can't start Excel";
 
@@ -412,7 +412,7 @@ sub xls_all_csv {
 
         my $sfull = $csv_dir.'\\'.$csv_leaf.'_'.sprintf('%03d', $xls_snumber).'.csv';
 
-        printf {$ofh} "S%03d;[%s]\n", $xls_snumber, $xls_sheet->Name;
+        printf {$ofh} "S%03d;%s\n", $xls_snumber, $xls_sheet->Name;
 
         my $csv_book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
         my $csv_sheet = $csv_book->Worksheets(1) or croak "Can't find Sheet '1' in new Workbook";
@@ -823,7 +823,7 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     );
 
     my $CN = XLConst();
-    say 'xlNormal = ', $CN->{'xlNormal'};
+    print 'xlNormal = ', $CN->{'xlNormal'}, "\n";
 
     my ($ver, $product) = get_xver;
 
@@ -833,7 +833,7 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     xls_2_vbs('Test1.xls' => 'dummy.vbs');
     empty_xls('Test2.xls');
 
-    say $_->{'NAME'}, ' => ', $_->{'CODE'} for @{slurp_vbs('Test3.xls')};
+    print $_->{'NAME'}, ' => ', $_->{'CODE'}, "\n" for @{slurp_vbs('Test3.xls')};
 
     xls_2_csv('Abc.xls%Tab01' => 'data01.csv', { cpy => 'all' }); # copy values *AND* format...
     xls_2_csv('Abc.xls%Tab02' => 'data02.csv', { cpy => 'val' }); # copy only values...
@@ -864,8 +864,8 @@ Win32::Scsv - Convert from and to *.xls, *.csv using Win32::OLE
     my $last_col = get_last_col($os); # returns zero for an empty sheet...
     my $last_row = get_last_row($os); # returns zero for an empty sheet...
 
-    say 'last col = ', $last_col, ', last row = ', $last_row;
-    say 'XLRef = ', XLRef($last_col, $last_row);
+    print 'last col = ', $last_col, ', last row = ', $last_row, "\n";
+    print 'XLRef = ', XLRef($last_col, $last_row), "\n";
 
     $ob->Close;
 
