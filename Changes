@@ -1,5 +1,11 @@
 Revision history for Win32-Scsv
 
+0.39 - 2017-02-09 20:01:13+01:00
+
+  [ENHANCEMENTS]
+
+  - Better parameter for function open_excel()
+
 0.38 - 2017-02-07 21:50:20+01:00
 
   [ENHANCEMENTS]

@@ -10,6 +10,7 @@ use File::Spec;
 use File::Copy;
 use File::Slurp;
 use Win32::File qw();
+use Win32::VBScript qw(:ini);
 
 use Win32::OLE::Const;
 my $Const_MSExcel;
@@ -68,7 +69,9 @@ sub open_excel {
         croak "Can't find EXCEL.EXE";
     }
 
-    system qq{start /min cmd.exe /k ""$excel_exe" "$_[0]" || pause & exit"};
+    my $file = defined($_[0]) ? qq{"$_[0]"} : '';
+
+    system qq{start /min cmd.exe /k ""$excel_exe" $file || pause & exit"};
 }
 
 # Comment by Klaus Eichner, 11-Feb-2012:
@@ -304,6 +307,7 @@ sub xls_2_csv {
     my $xls_sheet = $xls_book->Worksheets($xls_snumber)
        or croak "Can't find Sheet '$xls_snumber' in xls_abs '$xls_abs'";
 
+    $xls_sheet->Activate;
     $xls_sheet->{'Visible'} = $vttrue;
 
     if ($set_calc) {
@@ -315,6 +319,8 @@ sub xls_2_csv {
 
     $xls_sheet->Cells->AutoFilter; # This should, I hope, get rid of any AutoFilter...
     $xls_sheet->Cells->Copy;
+
+    $csv_sheet->Activate;
     $csv_sheet->Range('A1')->PasteSpecial($C_Special); # $CXL_PasteVal or $CXL_PasteAll
 
     if ($rem_crlf) {
@@ -348,7 +354,6 @@ sub xls_2_csv {
         });
     }
 
-    $csv_sheet->Activate;
     $csv_sheet->Columns($_->[0])->{NumberFormat} = $_->[1] for @col_fmt;
 
     $csv_book->SaveAs($csv_abs, $CXL_Csv);
@@ -417,6 +422,9 @@ sub xls_all_csv {
         my $csv_book  = $ole_excel->Workbooks->Add or croak "Can't Workbooks->Add";
         my $csv_sheet = $csv_book->Worksheets(1) or croak "Can't find Sheet '1' in new Workbook";
 
+        $csv_book->SaveAs($sfull, $CXL_Csv);
+
+        $xls_sheet->Activate;
         $xls_sheet->{'Visible'} = $vttrue;
 
         if ($set_calc) {
@@ -425,7 +433,8 @@ sub xls_all_csv {
 
         $xls_sheet->Cells->AutoFilter; # This should, I hope, get rid of any AutoFilter...
         $xls_sheet->Cells->Copy;
-
+        $csv_sheet->Activate;
+        $csv_sheet->{'Visible'} = $vttrue;
         $csv_sheet->Range('A1')->PasteSpecial($C_Special); # $CXL_PasteVal or $CXL_PasteAll
 
         if ($rem_crlf) {
@@ -460,7 +469,6 @@ sub xls_all_csv {
         }
 
         $csv_book->SaveAs($sfull, $CXL_Csv);
-
         $csv_book->Close;
     }
 
