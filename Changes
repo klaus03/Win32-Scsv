@@ -1,5 +1,11 @@
 Revision history for Win32-Scsv
 
+0.41 - 2018-11-26 21:15:09+01:00
+
+  [CPANTS]
+
+  - This module requires at least perl version 5.026
+
 0.40 - 2018-11-22 18:42:54+01:00
 
   [ENHANCEMENTS]

@@ -1,6 +1,6 @@
 package Win32::Scsv;
 
-use strict;
+use 5.026;
 use warnings;
 
 =head1 NAME
